@@ -1,0 +1,10 @@
+*
+!/.gitignore
+!/.travis.yml
+!/README.md
+!/LICENSE
+!/config
+!/lib
+!/test
+!*.ex
+!*.exs
