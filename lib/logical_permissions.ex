@@ -74,7 +74,7 @@ defmodule LogicalPermissions do
   def check_access?(permissions, context \\ {}, allow_bypass \\ true)
   def check_access?(permissions, context, allow_bypass) when is_map(permissions) and is_tuple(context) and is_boolean(allow_bypass) do
     allow_bypass =
-      if Map.has_key?(permissions, :no_bypass) and allow_bypass do
+      if Map.has_key?(permissions, :no_bypass) && allow_bypass do
         case Map.fetch(permissions, :no_bypass) do
           no_bypass when is_boolean(no_bypass) -> !no_bypass
           no_bypass when is_map(no_bypass) -> !process_or?(no_bypass, nil, context)
