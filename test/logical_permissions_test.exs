@@ -24,4 +24,8 @@ defmodule LogicalPermissionsTest do
     assert LogicalPermissions.get_bypass_callback == {LogicalPermissions.Test.BypassAccess, :check_bypass_access?}
   end
 
+  test "get_valid_permission_keys/0" do
+    assert LogicalPermissions.get_valid_permission_keys == [:no_bypass, :and, :nand, :or, :nor, :xor, :not, true, false, :flag, :role]
+  end
+
 end
