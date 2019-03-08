@@ -58,11 +58,11 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   defp dispatch(permissions, context \\ {}, type \\ nil)
-  defp dispatch(permissions, nil, context) when is_boolean(permissions) do
-    {:error, "You cannot put a boolean permission as a descendant to a permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"}
+  defp dispatch(permissions, context, nil) when is_boolean(permissions) do
+    {:ok, permissions}
   end
   defp dispatch(permissions, context, type) when is_boolean(permissions) do
-    {:ok, permissions}
+    {:error, "You cannot put a boolean permission as a descendant to a permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"}
   end
   defp dispatch(permissions, context, type) when is_binary(permissions) do
     check_permission(type, permissions, context)
@@ -74,7 +74,9 @@ defmodule LogicalPermissions.AccessChecker do
     process_or(permissions, context, type)
   end
   defp dispatch(permissions, context, type) when is_map(permissions) and map_size(permissions) == 1 do
-    %{key, value} = permissions
+    {key, value} = permissions
+      |> Map.to_list
+      |> List.first
     case key do
       :no_bypass -> {:error, "The :no_bypass key must be placed highest in the permission hierarchy. Evaluated permissions: #{inspect(permissions)}"}
       :and -> process_and(permissions, context, type)
@@ -83,7 +85,7 @@ defmodule LogicalPermissions.AccessChecker do
       :nor -> process_nor(permissions, context, type)
       :xor -> process_xor(permissions, context, type)
       :not -> process_not(permissions, context, type)
-      true or false -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(permissions)}"}
+      n when n in [true, false] -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(permissions)}"}
       n when is_atom(n) ->
         if type do
           {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"}
@@ -218,7 +220,7 @@ defmodule LogicalPermissions.AccessChecker do
       found_error
     end
 
-    count = Enum.reduce(%{}, fn values, acc ->
+    count = Enum.reduce(%{}, fn value, acc ->
       Map.update(acc, value, 1, &(&1 + 1))
     end)
     if Map.get(count, true) >= 1 and Map.get(count, false) >= 1 do
@@ -241,7 +243,7 @@ defmodule LogicalPermissions.AccessChecker do
       found_error
     end
 
-    count = Enum.reduce(%{}, fn values, acc ->
+    count = Enum.reduce(%{}, fn value, acc ->
       Map.update(acc, value, 1, &(&1 + 1))
     end)
     if Map.get(count, true) >= 1 and Map.get(count, false) >= 1 do
