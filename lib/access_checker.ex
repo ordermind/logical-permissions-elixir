@@ -99,7 +99,6 @@ defmodule LogicalPermissions.AccessChecker do
 
         type = key
 
-
         case value do
           n when is_list(n) -> process_or(value, context, type)
           n when is_map(n) -> process_or(value, context, type)
@@ -207,47 +206,27 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "The value list of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
   end
   defp process_xor(permissions, context, type) when is_list(permissions) do
-    results = Enum.map(permissions, fn permission ->
-      dispatch(permission, context, type)
+    Enum.reduce_while(permissions, %{counters: %{true: 0, false: 0}, access: {:ok, false}}, fn permission, acc ->
+      case dispatch(permission, context, type) do
+        {:ok, true} -> if acc.counters.false > 0, do: {:halt, %{counters: acc.counters, access: {:ok, true}}}, else: {:cont, %{counters: %{true: acc.counters.true + 1, false: acc.counters.false}, access: acc.access}}
+        {:ok, false} -> if acc.counters.true > 0, do: {:halt, %{counters: acc.counters, access: {:ok, true}}}, else: {:cont, %{counters: %{true: acc.counters.true, false: acc.counters.false + 1}, access: acc.access}}
+        {:error, reason} -> {:halt, %{counters: acc.counters, access: {:error, reason}}}
+      end
     end)
-    found_error = Enum.find(results, fn(element) ->
-      match?({:error, _}, element)
-    end)
-    if found_error do
-      found_error
-    end
-
-    count = Enum.reduce(%{}, fn value, acc ->
-      Map.update(acc, value, 1, &(&1 + 1))
-    end)
-    if Map.get(count, true) >= 1 and Map.get(count, false) >= 1 do
-      {:ok, true}
-    end
-
-    {:ok, false}
+    |> Map.fetch!(:access)
   end
   defp process_xor(permissions, _, _) when is_map(permissions) and map_size(permissions) < 2 do
     {:error, "The value map of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
   end
   defp process_xor(permissions, context, type) when is_map(permissions) do
-    results = Enum.map(permissions, fn {key, value} ->
-      dispatch(%{key => value}, context, type)
+    Enum.reduce_while(permissions, %{counters: %{true: 0, false: 0}, access: {:ok, false}}, fn {key, value}, acc ->
+      case dispatch(%{key => value}, context, type) do
+        {:ok, true} -> if acc.counters.false > 0, do: {:halt, %{counters: acc.counters, access: {:ok, true}}}, else: {:cont, %{counters: %{true: acc.counters.true + 1, false: acc.counters.false}, access: acc.access}}
+        {:ok, false} -> if acc.counters.true > 0, do: {:halt, %{counters: acc.counters, access: {:ok, true}}}, else: {:cont, %{counters: %{true: acc.counters.true, false: acc.counters.false + 1}, access: acc.access}}
+        {:error, reason} -> {:halt, %{counters: acc.counters, access: {:error, reason}}}
+      end
     end)
-    found_error = Enum.find(results, fn(element) ->
-      match?({:error, _}, element)
-    end)
-    if found_error do
-      found_error
-    end
-
-    count = Enum.reduce(%{}, fn value, acc ->
-      Map.update(acc, value, 1, &(&1 + 1))
-    end)
-    if Map.get(count, true) >= 1 and Map.get(count, false) >= 1 do
-      {:ok, true}
-    end
-
-    {:ok, false}
+    |> Map.fetch!(:access)
   end
   defp process_xor(permissions, _, _) do
     {:error, "The value of an XOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
