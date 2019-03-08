@@ -45,7 +45,7 @@ defmodule LogicalPermissions.AccessChecker do
       end
     permissions = Map.drop(permissions, [:no_bypass])
 
-    if allow_bypass && check_bypass_access(context) do
+    if allow_bypass && check_bypass_access(context) == {:ok, true} do
       {:ok, true}
     end
     if Enum.count(permissions) == 0 do
