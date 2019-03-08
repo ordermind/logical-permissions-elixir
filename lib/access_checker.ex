@@ -38,7 +38,7 @@ defmodule LogicalPermissions.AccessChecker do
       if Map.has_key?(permissions, :no_bypass) && allow_bypass do
         case Map.fetch(permissions, :no_bypass) do
           no_bypass when is_boolean(no_bypass) -> !no_bypass
-          no_bypass when is_map(no_bypass) -> !process_or(no_bypass, nil, context)
+          no_bypass when is_map(no_bypass) -> !process_or(no_bypass, context)
         end
       else
         allow_bypass
@@ -51,17 +51,17 @@ defmodule LogicalPermissions.AccessChecker do
     if Enum.count(permissions) == 0 do
       {:ok, true}
     end
-    process_or(permissions, nil, context)
+    process_or(permissions, context)
   end
   def check_access(permissions, context, allow_bypass) when is_boolean(permissions) and is_tuple(context) and is_boolean(allow_bypass) do
     dispatch(permissions)
   end
 
   defp dispatch(permissions, context \\ {}, type \\ nil)
-  defp dispatch(permissions, context, nil) when is_boolean(permissions) do
+  defp dispatch(permissions, _, nil) when is_boolean(permissions) do
     {:ok, permissions}
   end
-  defp dispatch(permissions, context, type) when is_boolean(permissions) do
+  defp dispatch(permissions, _, type) when is_boolean(permissions) do
     {:error, "You cannot put a boolean permission as a descendant to a permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"}
   end
   defp dispatch(permissions, context, type) when is_binary(permissions) do
@@ -97,15 +97,15 @@ defmodule LogicalPermissions.AccessChecker do
         type = key
 
         case value do
-          n when is_list(n) -> process_or(value, type, context)
-          n when is_map(n) -> process_or(value, type, context)
-          _ -> dispatch(value, type, context)
+          n when is_list(n) -> process_or(value, context, type)
+          n when is_map(n) -> process_or(value, context, type)
+          _ -> dispatch(value, context, type)
         end
     end
   end
 
-  defp process_and(permissions, context, type \\ nil)
-  defp process_and(permissions, context, type) when is_list(permissions) and length(permissions) < 1 do
+  defp process_and(permissions, context, type)
+  defp process_and(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
     {:error, "The value list of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_and(permissions, context, type) when is_list(permissions) do
@@ -119,12 +119,12 @@ defmodule LogicalPermissions.AccessChecker do
       {:ok, true}
     end)
   end
-  defp process_and(permissions, context, type) when is_map(permissions) and map_size(permissions) < 1 do
+  defp process_and(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
     {:error, "The value map of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_and(permissions, context, type) when is_map(permissions) do
     Enum.each(permissions, fn {key, value} ->
-      case dispatch(%{key: value}, context, type) do
+      case dispatch(%{key => value}, context, type) do
         {:ok, false} -> {:ok, false}
         {:error, reason} -> {:error, reason}
         _ -> nil
@@ -133,16 +133,15 @@ defmodule LogicalPermissions.AccessChecker do
       {:ok, true}
     end)
   end
-  defp process_and(permissions, context, type) do
+  defp process_and(permissions, _, _) do
     {:error, "The value of an AND gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
-
-  defp process_nand(permissions, context, type \\ nil)
-  defp process_nand(permissions, context, type) when is_list(permissions) and length(permissions) < 1 do
+  defp process_nand(permissions, context, type)
+  defp process_nand(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
     {:error, "The value list of a NAND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
-  defp process_nand(permissions, context, type) when is_map(permissions) and map_size(permissions) < 1 do
+  defp process_nand(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
     {:error, "The value map of a NAND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_nand(permissions, context, type) when is_list(permissions) or is_map(permissions) do
@@ -151,15 +150,15 @@ defmodule LogicalPermissions.AccessChecker do
       {:error, reason} -> {:error, reason}
     end
   end
-  defp process_nand(permissions, context, type) do
+  defp process_nand(permissions, _, _) do
     {:error, "The value of a NAND gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
   defp process_or(permissions, context, type \\ nil)
-  defp process_or(permissions, context, type) when is_list(permissions) and length(permissions) < 1 do
+  defp process_or(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
     {:error, "The value list of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
-  defp process_and(permissions, context, type) when is_list(permissions) do
+  defp process_or(permissions, context, type) when is_list(permissions) do
     Enum.each(permissions, fn permission ->
       case dispatch(permission, context, type) do
         {:ok, true} -> {:ok, true}
@@ -170,12 +169,12 @@ defmodule LogicalPermissions.AccessChecker do
       {:ok, false}
     end)
   end
-  defp process_or(permissions, context, type) when is_map(permissions) and map_size(permissions) < 1 do
+  defp process_or(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
     {:error, "The value map of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_or(permissions, context, type) when is_map(permissions) do
     Enum.each(permissions, fn {key, value} ->
-      case dispatch(%{key: value}, context, type) do
+      case dispatch(%{key => value}, context, type) do
         {:ok, true} -> {:ok, true}
         {:error, reason} -> {:error, reason}
         _ -> nil
@@ -184,15 +183,15 @@ defmodule LogicalPermissions.AccessChecker do
       {:ok, false}
     end)
   end
-  defp process_or(permissions, context, type) do
+  defp process_or(permissions, _, _) do
     {:error, "The value of an OR gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
-  defp process_nor(permissions, context, type \\ nil)
-  defp process_nor(permissions, context, type) when is_list(permissions) and length(permissions) < 1 do
+  defp process_nor(permissions, context, type)
+  defp process_nor(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
     {:error, "The value list of a NOR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
-  defp process_nor(permissions, context, type) when is_map(permissions) and map_size(permissions) < 1 do
+  defp process_nor(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
     {:error, "The value map of a NOR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_nor(permissions, context, type) when is_list(permissions) or is_map(permissions) do
@@ -201,12 +200,12 @@ defmodule LogicalPermissions.AccessChecker do
       {:error, reason} -> {:error, reason}
     end
   end
-  defp process_nor(permissions, context, type) do
+  defp process_nor(permissions, _, _) do
     {:error, "The value of a NOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
-  defp process_xor(permissions, context, type \\ nil)
-  defp process_xor(permissions, context, type) when is_list(permissions) and length(permissions) < 2 do
+  defp process_xor(permissions, context, type)
+  defp process_xor(permissions, _, _) when is_list(permissions) and length(permissions) < 2 do
     {:error, "The value list of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
   end
   defp process_xor(permissions, context, type) when is_list(permissions) do
@@ -214,7 +213,7 @@ defmodule LogicalPermissions.AccessChecker do
       dispatch(permission, context, type)
     end)
     found_error = Enum.find(results, fn(element) ->
-      match?({:error, reason}, element)
+      match?({:error, _}, element)
     end)
     if found_error do
       found_error
@@ -229,15 +228,15 @@ defmodule LogicalPermissions.AccessChecker do
 
     {:ok, false}
   end
-  defp process_xor(permissions, context, type) when is_map(permissions) and map_size(permissions) < 2 do
+  defp process_xor(permissions, _, _) when is_map(permissions) and map_size(permissions) < 2 do
     {:error, "The value map of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
   end
   defp process_xor(permissions, context, type) when is_map(permissions) do
     results = Enum.map(permissions, fn {key, value} ->
-      dispatch(%{key: value}, context, type)
+      dispatch(%{key => value}, context, type)
     end)
     found_error = Enum.find(results, fn(element) ->
-      match?({:error, reason}, element)
+      match?({:error, _}, element)
     end)
     if found_error do
       found_error
@@ -252,24 +251,24 @@ defmodule LogicalPermissions.AccessChecker do
 
     {:ok, false}
   end
-  defp process_xor(permissions, context, type) do
+  defp process_xor(permissions, _, _) do
     {:error, "The value of an XOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
-  defp process_not(permissions, context, type \\ nil)
-  defp process_not(permissions, context, type) when is_map(permissions) and map_size(permissions) != 1 do
+  defp process_not(permissions, context, type)
+  defp process_not(permissions, _, _) when is_map(permissions) and map_size(permissions) != 1 do
     {:error, "The value map of a NOT gate must contain exactly one element. Current value: #{inspect(permissions)}"}
   end
   defp process_not(permissions, context, type) when is_map(permissions) do
     !dispatch(permissions, context, type)
   end
-  defp process_not(permissions, context, type) when is_binary(permissions) and permissions == "" do
+  defp process_not(permissions, _, _) when is_binary(permissions) and permissions == "" do
     {:error, "The value of a NOT gate cannot have an empty string as its value."}
   end
   defp process_not(permissions, context, type) when is_binary(permissions) do
     !dispatch(permissions, context, type)
   end
-  defp process_not(permissions, context, type) do
+  defp process_not(permissions, _, _) do
     {:error, "The value of a NOT gate must either be a map or a string. Current value: #{inspect(permissions)}"}
   end
 end
