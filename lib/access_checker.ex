@@ -24,7 +24,7 @@ defmodule LogicalPermissions.AccessChecker do
   case LogicalPermissions.BypassAccessCheckerBuilder.get_module do
   module ->
     defp unquote(:"check_bypass_access")(context) do
-      apply(unquote(module), "check_bypass_access", [context])
+      apply(unquote(module), :check_bypass_access, [context])
     end
   nil ->
     defp unquote(:"check_bypass_access")(_) do
@@ -43,7 +43,7 @@ defmodule LogicalPermissions.AccessChecker do
       else
         allow_bypass
       end
-    permissions = Map.drop(permissions, :no_bypass)
+    permissions = Map.drop(permissions, [:no_bypass])
 
     if allow_bypass && check_bypass_access(context) do
       {:ok, true}
@@ -55,6 +55,9 @@ defmodule LogicalPermissions.AccessChecker do
   end
   def check_access(permissions, context, allow_bypass) when is_boolean(permissions) and is_tuple(context) and is_boolean(allow_bypass) do
     dispatch(permissions)
+  end
+  def check_access(_, _, _) do
+    {:error, "The permissions parameter must be a map or a boolean."}
   end
 
   defp dispatch(permissions, context \\ {}, type \\ nil)
@@ -96,10 +99,13 @@ defmodule LogicalPermissions.AccessChecker do
 
         type = key
 
+
         case value do
           n when is_list(n) -> process_or(value, context, type)
           n when is_map(n) -> process_or(value, context, type)
-          _ -> dispatch(value, context, type)
+          n when is_binary(n) -> dispatch(value, context, type)
+          n when is_boolean(n) -> dispatch(value, context, type)
+          _ -> {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(permissions)}"}
         end
     end
   end
@@ -109,28 +115,24 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "The value list of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_and(permissions, context, type) when is_list(permissions) do
-    Enum.each(permissions, fn permission ->
+    Enum.reduce_while(permissions, nil, fn permission, _ ->
       case dispatch(permission, context, type) do
-        {:ok, false} -> {:ok, false}
-        {:error, reason} -> {:error, reason}
-        _ -> nil
+        {:ok, false} -> {:halt, {:ok, false}}
+        {:error, reason} -> {:halt, {:error, reason}}
+        _ -> {:cont, {:ok, true}}
       end
-
-      {:ok, true}
     end)
   end
   defp process_and(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
     {:error, "The value map of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_and(permissions, context, type) when is_map(permissions) do
-    Enum.each(permissions, fn {key, value} ->
+    Enum.reduce_while(permissions, nil, fn {key, value}, _ ->
       case dispatch(%{key => value}, context, type) do
-        {:ok, false} -> {:ok, false}
-        {:error, reason} -> {:error, reason}
-        _ -> nil
+        {:ok, false} -> {:halt, {:ok, false}}
+        {:error, reason} -> {:halt, {:error, reason}}
+        _ -> {:cont, {:ok, true}}
       end
-
-      {:ok, true}
     end)
   end
   defp process_and(permissions, _, _) do
@@ -159,28 +161,24 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "The value list of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_or(permissions, context, type) when is_list(permissions) do
-    Enum.each(permissions, fn permission ->
+    Enum.reduce_while(permissions, nil, fn permission, _ ->
       case dispatch(permission, context, type) do
-        {:ok, true} -> {:ok, true}
-        {:error, reason} -> {:error, reason}
-        _ -> nil
+        {:ok, true} -> {:halt, {:ok, true}}
+        {:error, reason} -> {:halt, {:error, reason}}
+        _ -> {:cont, {:ok, false}}
       end
-
-      {:ok, false}
     end)
   end
   defp process_or(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
     {:error, "The value map of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_or(permissions, context, type) when is_map(permissions) do
-    Enum.each(permissions, fn {key, value} ->
+    Enum.reduce_while(permissions, nil, fn {key, value}, _ ->
       case dispatch(%{key => value}, context, type) do
-        {:ok, true} -> {:ok, true}
-        {:error, reason} -> {:error, reason}
-        _ -> nil
+        {:ok, true} -> {:halt, {:ok, true}}
+        {:error, reason} -> {:halt, {:error, reason}}
+        _ -> {:cont, {:ok, false}}
       end
-
-      {:ok, false}
     end)
   end
   defp process_or(permissions, _, _) do
