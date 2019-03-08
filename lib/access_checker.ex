@@ -6,7 +6,7 @@ defmodule LogicalPermissions.AccessChecker do
   # Generate a function for checking permission for each permission type
   Enum.each(LogicalPermissions.PermissionTypeBuilder.get_permission_types(), fn {name, module} ->
     defp unquote(:"check_permission")(unquote(name), value, context) do
-      apply(unquote(module), "check_permission", [value, context])
+      apply(unquote(module), :check_permission, [value, context])
     end
   end)
 
@@ -68,6 +68,7 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "You cannot put a boolean permission as a descendant to a permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"}
   end
   defp dispatch(permissions, context, type) when is_binary(permissions) do
+    IO.inspect({permissions, type})
     check_permission(type, permissions, context)
   end
   defp dispatch(permissions, context, type) when is_list(permissions) do
@@ -91,13 +92,16 @@ defmodule LogicalPermissions.AccessChecker do
       n when n in [true, false] -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(permissions)}"}
       n when is_atom(n) ->
         if type do
-          {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"}
+          IO.inspect({:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"})
+          IO.inspect("hej")
         end
         if !LogicalPermissions.PermissionTypeBuilder.type_exists?(key) do
           {:error, "The permission type '#{key}' has not been registered. Please refer to the documentation regarding how to register a permission type."}
         end
 
         type = key
+
+        IO.inspect("hej2")
 
         case value do
           n when is_list(n) -> process_or(value, context, type)
@@ -172,13 +176,15 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "The value map of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_or(permissions, context, type) when is_map(permissions) do
-    Enum.reduce_while(permissions, nil, fn {key, value}, _ ->
-      case dispatch(%{key => value}, context, type) do
-        {:ok, true} -> {:halt, {:ok, true}}
-        {:error, reason} -> {:halt, {:error, reason}}
-        _ -> {:cont, {:ok, false}}
-      end
-    end)
+    IO.inspect({permissions, type})
+    IO.inspect(dispatch(permissions, context, type))
+#     Enum.reduce_while(permissions, nil, fn {key, value}, _ ->
+#       case dispatch(%{key => value}, context, type) do
+#         {:ok, true} -> {:halt, {:ok, true}}
+#         {:error, reason} -> {:halt, {:error, reason}}
+#         _ -> {:cont, {:ok, false}}
+#       end
+#     end)
   end
   defp process_or(permissions, _, _) do
     {:error, "The value of an OR gate must be a list or a map. Current value: #{inspect(permissions)}"}
