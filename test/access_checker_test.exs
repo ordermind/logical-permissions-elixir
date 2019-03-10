@@ -10,14 +10,14 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(0) == {:error, "The permissions parameter must be a map or a boolean."}
   end
 
-  test "check_access/1 wrong permission value type" do
+  test "check_access/3 wrong permission value type" do
     permissions = %{flag: 50}
-    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(permissions)}"}
+    assert LogicalPermissions.AccessChecker.check_access(permissions, {}, false) == {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(permissions)}"}
   end
 
-  test "check_access/1 nested permission types" do
+  test "check_access/3 nested permission types" do
     permissions = %{flag: %{flag: "testflag"}}
-    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: flag. Evaluated permissions: %{flag: \"testflag\"}"}
+    assert LogicalPermissions.AccessChecker.check_access(permissions, {}, false) == {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: flag. Evaluated permissions: %{flag: \"testflag\"}"}
   end
 end
 
