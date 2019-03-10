@@ -44,8 +44,9 @@ defmodule LogicalPermissions.AccessChecker do
       cond do
         allow_bypass && Map.has_key?(permissions, :no_bypass) ->
           case Map.fetch(permissions, :no_bypass) do
-            no_bypass when is_boolean(no_bypass) -> !no_bypass
             no_bypass when is_map(no_bypass) -> !process_or(no_bypass, context, nil)
+            no_bypass when is_boolean(no_bypass) -> !no_bypass
+            _ -> false
           end
         true ->
           allow_bypass
@@ -78,6 +79,9 @@ defmodule LogicalPermissions.AccessChecker do
   defp dispatch(permissions, context, type) when is_binary(permissions) do
     check_permission(type, permissions, context)
   end
+  defp dispatch(permissions, context, type) when is_list(permissions) or is_map(permissions) do
+    process_or(permissions, context, type)
+  end
   defp dispatch({key, value}, context, type) do
     case key do
       :no_bypass -> {:error, "The :no_bypass key must be placed highest in the permission hierarchy. Evaluated permissions: #{inspect(%{key => value})}"}
@@ -88,6 +92,7 @@ defmodule LogicalPermissions.AccessChecker do
       :xor -> process_xor(value, context, type)
       :not -> process_not(value, context, type)
       n when n in [true, false] -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(%{key => value})}"}
+      n when is_integer(n) -> dispatch(value, context, type)
       n when is_atom(n) ->
         cond do
           type ->
@@ -151,14 +156,8 @@ defmodule LogicalPermissions.AccessChecker do
 
   # OR processing
   defp process_or(permissions, context, type)
-  defp process_or(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
-    {:error, "The value map of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
-  end
   defp process_or(permissions, context, type) when is_map(permissions) do
     process_or(Map.to_list(permissions), context, type)
-  end
-  defp process_or(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
-    {:error, "The value list of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_or([h|t], context, type) do
       case dispatch(h, context, type) do
@@ -176,12 +175,6 @@ defmodule LogicalPermissions.AccessChecker do
 
   # NOR processing
   defp process_nor(permissions, context, type)
-  defp process_nor(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
-    {:error, "The value list of a NOR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
-  end
-  defp process_nor(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
-    {:error, "The value map of a NOR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
-  end
   defp process_nor(permissions, context, type) when is_list(permissions) or is_map(permissions) do
     case process_or(permissions, context, type) do
       {:ok, value} -> {:ok, !value}
@@ -194,14 +187,8 @@ defmodule LogicalPermissions.AccessChecker do
 
   # XOR processing
   defp process_xor(permissions, context, type, counter \\ %{true: 0, false: 0})
-  defp process_xor(permissions, _, _, _) when is_map(permissions) and map_size(permissions) < 2 do
-    {:error, "The value map of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
-  end
   defp process_xor(permissions, context, type, _) when is_map(permissions) do
     process_xor(Map.to_list(permissions), context, type)
-  end
-  defp process_xor(permissions, _, _, _) when is_list(permissions) and length(permissions) < 2 do
-    {:error, "The value list of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
   end
   defp process_xor([h|t], context, type, counter) do
     case dispatch(h, context, type) do

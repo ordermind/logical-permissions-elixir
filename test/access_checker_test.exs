@@ -45,5 +45,42 @@ defmodule AccessCheckerTest do
   test "check_access/2 wrong context param type" do
     assert LogicalPermissions.AccessChecker.check_access(false, 0) == {:error, "The context parameter must be a map."}
   end
+
+  test "check_access/3 wrong allow_bypass param type" do
+    assert LogicalPermissions.AccessChecker.check_access(false, %{}, "test") == {:error, "The allow_bypass parameter must be a boolean."}
+  end
+
+  test "check_access/3 empty map allow" do
+    assert LogicalPermissions.AccessChecker.check_access(%{}, %{}, false) == {:ok, true}
+  end
+
+  test "check_access/2 bypass access allow" do
+    assert LogicalPermissions.AccessChecker.check_access(false, %{bypass_access: true}) == {:ok, true}
+  end
+
+  test "check_access/1 bypass access deny" do
+    assert LogicalPermissions.AccessChecker.check_access(false, %{bypass_access: false}) == {:ok, false}
+  end
+
+  test "check_access/3 bypass access deny" do
+    assert LogicalPermissions.AccessChecker.check_access(false, %{}, false) == {:ok, false}
+  end
+
+  test "check_access/1 no_bypass wrong type" do
+    permissions = %{
+      0 => false,
+      no_bypass: "test"
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, false}
+  end
+
+  test "check_access/3 no_bypass illegal descendant" do
+    permissions = %{
+      or: %{
+        no_bypass: true
+      }
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "The :no_bypass key must be placed highest in the permission hierarchy. Evaluated permissions: %{no_bypass: true}"}
+  end
 end
 
