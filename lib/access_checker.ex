@@ -35,23 +35,22 @@ defmodule LogicalPermissions.AccessChecker do
   def check_access(permissions, context \\ {}, allow_bypass \\ true)
   def check_access(permissions, context, allow_bypass) when is_map(permissions) and is_tuple(context) and is_boolean(allow_bypass) do
     allow_bypass =
-      if Map.has_key?(permissions, :no_bypass) && allow_bypass do
-        case Map.fetch(permissions, :no_bypass) do
-          no_bypass when is_boolean(no_bypass) -> !no_bypass
-          no_bypass when is_map(no_bypass) -> !process_or(no_bypass, context)
-        end
-      else
-        allow_bypass
+      cond do
+        Map.has_key?(permissions, :no_bypass) && allow_bypass ->
+          case Map.fetch(permissions, :no_bypass) do
+            no_bypass when is_boolean(no_bypass) -> !no_bypass
+            no_bypass when is_map(no_bypass) -> !process_or(no_bypass, context)
+          end
+        true ->
+          allow_bypass
       end
     permissions = Map.drop(permissions, [:no_bypass])
 
-    if allow_bypass && check_bypass_access(context) == {:ok, true} do
-      {:ok, true}
+    cond do
+      allow_bypass && check_bypass_access(context) == {:ok, true} -> {:ok, true}
+      Enum.count(permissions) == 0 -> {:ok, true}
+      true -> process_or(permissions, context)
     end
-    if Enum.count(permissions) == 0 do
-      {:ok, true}
-    end
-    process_or(permissions, context)
   end
   def check_access(permissions, context, allow_bypass) when is_boolean(permissions) and is_tuple(context) and is_boolean(allow_bypass) do
     dispatch(permissions)
@@ -207,9 +206,18 @@ defmodule LogicalPermissions.AccessChecker do
   defp process_xor(permissions, context, type) when is_list(permissions) do
     Enum.reduce_while(permissions, %{counters: %{true: 0, false: 0}, access: {:ok, false}}, fn permission, acc ->
       case dispatch(permission, context, type) do
-        {:ok, true} -> if acc.counters.false > 0, do: {:halt, %{counters: acc.counters, access: {:ok, true}}}, else: {:cont, %{counters: %{true: acc.counters.true + 1, false: acc.counters.false}, access: acc.access}}
-        {:ok, false} -> if acc.counters.true > 0, do: {:halt, %{counters: acc.counters, access: {:ok, true}}}, else: {:cont, %{counters: %{true: acc.counters.true, false: acc.counters.false + 1}, access: acc.access}}
-        {:error, reason} -> {:halt, %{counters: acc.counters, access: {:error, reason}}}
+        {:ok, true} ->
+          case acc.counters.false do
+            0 -> {:cont, %{counters: %{true: acc.counters.true + 1, false: acc.counters.false}, access: acc.access}}
+            _ -> {:halt, %{counters: acc.counters, access: {:ok, true}}}
+          end
+        {:ok, false} ->
+          case acc.counters.true do
+            0 -> {:cont, %{counters: %{true: acc.counters.true, false: acc.counters.false + 1}, access: acc.access}}
+            _ -> {:halt, %{counters: acc.counters, access: {:ok, true}}}
+          end
+        {:error, reason} ->
+          {:halt, %{counters: acc.counters, access: {:error, reason}}}
       end
     end)
     |> Map.fetch!(:access)
@@ -220,9 +228,18 @@ defmodule LogicalPermissions.AccessChecker do
   defp process_xor(permissions, context, type) when is_map(permissions) do
     Enum.reduce_while(permissions, %{counters: %{true: 0, false: 0}, access: {:ok, false}}, fn {key, value}, acc ->
       case dispatch(%{key => value}, context, type) do
-        {:ok, true} -> if acc.counters.false > 0, do: {:halt, %{counters: acc.counters, access: {:ok, true}}}, else: {:cont, %{counters: %{true: acc.counters.true + 1, false: acc.counters.false}, access: acc.access}}
-        {:ok, false} -> if acc.counters.true > 0, do: {:halt, %{counters: acc.counters, access: {:ok, true}}}, else: {:cont, %{counters: %{true: acc.counters.true, false: acc.counters.false + 1}, access: acc.access}}
-        {:error, reason} -> {:halt, %{counters: acc.counters, access: {:error, reason}}}
+        {:ok, true} ->
+          case acc.counters.false do
+            0 -> {:cont, %{counters: %{true: acc.counters.true + 1, false: acc.counters.false}, access: acc.access}}
+            _ -> {:halt, %{counters: acc.counters, access: {:ok, true}}}
+          end
+        {:ok, false} ->
+          case acc.counters.true do
+            0 -> {:cont, %{counters: %{true: acc.counters.true, false: acc.counters.false + 1}, access: acc.access}}
+            _ -> {:halt, %{counters: acc.counters, access: {:ok, true}}}
+          end
+        {:error, reason} ->
+          {:halt, %{counters: acc.counters, access: {:error, reason}}}
       end
     end)
     |> Map.fetch!(:access)
