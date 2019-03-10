@@ -71,7 +71,7 @@ defmodule AccessCheckerTest do
       0 => false,
       no_bypass: "test"
     }
-    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:error, "Error checking if bypassing access should be allowed: The no_bypass value must be either a boolean or a map. Current value: \"test\""}
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:error, "Error checking if bypassing access should be forbidden: The no_bypass value must be either a boolean or a map. Current value: \"test\""}
   end
 
   test "check_access/3 no_bypass illegal descendant" do
