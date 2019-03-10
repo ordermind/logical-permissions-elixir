@@ -36,7 +36,7 @@ defmodule LogicalPermissions.AccessChecker do
   def check_access(permissions, context, allow_bypass) when is_map(permissions) and is_tuple(context) and is_boolean(allow_bypass) do
     allow_bypass =
       cond do
-        Map.has_key?(permissions, :no_bypass) && allow_bypass ->
+        allow_bypass && Map.has_key?(permissions, :no_bypass) ->
           case Map.fetch(permissions, :no_bypass) do
             no_bypass when is_boolean(no_bypass) -> !no_bypass
             no_bypass when is_map(no_bypass) -> !process_or(no_bypass, context)
@@ -70,29 +70,20 @@ defmodule LogicalPermissions.AccessChecker do
     IO.inspect({permissions, type})
     check_permission(type, permissions, context)
   end
-  defp dispatch(permissions, context, type) when is_list(permissions) do
-    process_or(permissions, context, type)
-  end
-  defp dispatch(permissions, context, type) when is_map(permissions) and map_size(permissions) > 1 do
-    process_or(permissions, context, type)
-  end
-  defp dispatch(permissions, context, type) when is_map(permissions) and map_size(permissions) == 1 do
-    {key, value} = permissions
-      |> Map.to_list
-      |> List.first
+  defp dispatch({key, value}, context, type) do
     case key do
-      :no_bypass -> {:error, "The :no_bypass key must be placed highest in the permission hierarchy. Evaluated permissions: #{inspect(permissions)}"}
-      :and -> process_and(permissions, context, type)
-      :nand -> process_nand(permissions, context, type)
-      :or -> process_or(permissions, context, type)
-      :nor -> process_nor(permissions, context, type)
-      :xor -> process_xor(permissions, context, type)
-      :not -> process_not(permissions, context, type)
-      n when n in [true, false] -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(permissions)}"}
+      :no_bypass -> {:error, "The :no_bypass key must be placed highest in the permission hierarchy. Evaluated permissions: #{inspect(%{key => value})}"}
+      :and -> process_and(value, context, type)
+      :nand -> process_nand(value, context, type)
+      :or -> process_or(value, context, type)
+      :nor -> process_nor(value, context, type)
+      :xor -> process_xor(value, context, type)
+      :not -> process_not(value, context, type)
+      n when n in [true, false] -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(%{key => value})}"}
       n when is_atom(n) ->
         cond do
           type ->
-            {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"}
+            {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{type}. Evaluated permissions: #{inspect(%{key => value})}"}
           !LogicalPermissions.PermissionTypeBuilder.type_exists?(key) ->
             {:error, "The permission type '#{key}' has not been registered. Please refer to the documentation regarding how to register a permission type."}
           true ->
@@ -101,31 +92,25 @@ defmodule LogicalPermissions.AccessChecker do
               n when is_map(n) -> process_or(value, context, key)
               n when is_binary(n) -> dispatch(value, context, key)
               n when is_boolean(n) -> dispatch(value, context, key)
-              _ -> {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(permissions)}"}
+              _ -> {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(%{key => value})}"}
             end
         end
     end
   end
 
   defp process_and(permissions, context, type)
+  defp process_and(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
+    {:error, "The value map of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
+  end
+  defp process_and(permissions, context, type) when is_map(permissions) do
+    process_and(Map.to_list(permissions), context, type)
+  end
   defp process_and(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
     {:error, "The value list of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_and(permissions, context, type) when is_list(permissions) do
     Enum.reduce_while(permissions, nil, fn permission, _ ->
       case dispatch(permission, context, type) do
-        {:ok, false} -> {:halt, {:ok, false}}
-        {:error, reason} -> {:halt, {:error, reason}}
-        _ -> {:cont, {:ok, true}}
-      end
-    end)
-  end
-  defp process_and(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
-    {:error, "The value map of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
-  end
-  defp process_and(permissions, context, type) when is_map(permissions) do
-    Enum.reduce_while(permissions, nil, fn {key, value}, _ ->
-      case dispatch(%{key => value}, context, type) do
         {:ok, false} -> {:halt, {:ok, false}}
         {:error, reason} -> {:halt, {:error, reason}}
         _ -> {:cont, {:ok, true}}
@@ -154,24 +139,18 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   defp process_or(permissions, context, type \\ nil)
+  defp process_or(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
+    {:error, "The value map of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
+  end
+  defp process_or(permissions, context, type) when is_map(permissions) do
+    process_or(Map.to_list(permissions), context, type)
+  end
   defp process_or(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
     {:error, "The value list of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_or(permissions, context, type) when is_list(permissions) do
     Enum.reduce_while(permissions, nil, fn permission, _ ->
       case dispatch(permission, context, type) do
-        {:ok, true} -> {:halt, {:ok, true}}
-        {:error, reason} -> {:halt, {:error, reason}}
-        _ -> {:cont, {:ok, false}}
-      end
-    end)
-  end
-  defp process_or(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
-    {:error, "The value map of an OR gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
-  end
-  defp process_or(permissions, context, type) when is_map(permissions) do
-    Enum.reduce_while(permissions, nil, fn {key, value}, _ ->
-      case dispatch(%{key => value}, context, type) do
         {:ok, true} -> {:halt, {:ok, true}}
         {:error, reason} -> {:halt, {:error, reason}}
         _ -> {:cont, {:ok, false}}
@@ -200,34 +179,18 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   defp process_xor(permissions, context, type)
+  defp process_xor(permissions, _, _) when is_map(permissions) and map_size(permissions) < 2 do
+    {:error, "The value map of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
+  end
+  defp process_xor(permissions, context, type) when is_map(permissions) do
+    process_xor(Map.to_list(permissions), context, type)
+  end
   defp process_xor(permissions, _, _) when is_list(permissions) and length(permissions) < 2 do
     {:error, "The value list of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
   end
   defp process_xor(permissions, context, type) when is_list(permissions) do
     Enum.reduce_while(permissions, %{counters: %{true: 0, false: 0}, access: {:ok, false}}, fn permission, acc ->
       case dispatch(permission, context, type) do
-        {:ok, true} ->
-          case acc.counters.false do
-            0 -> {:cont, %{counters: %{true: acc.counters.true + 1, false: acc.counters.false}, access: acc.access}}
-            _ -> {:halt, %{counters: acc.counters, access: {:ok, true}}}
-          end
-        {:ok, false} ->
-          case acc.counters.true do
-            0 -> {:cont, %{counters: %{true: acc.counters.true, false: acc.counters.false + 1}, access: acc.access}}
-            _ -> {:halt, %{counters: acc.counters, access: {:ok, true}}}
-          end
-        {:error, reason} ->
-          {:halt, %{counters: acc.counters, access: {:error, reason}}}
-      end
-    end)
-    |> Map.fetch!(:access)
-  end
-  defp process_xor(permissions, _, _) when is_map(permissions) and map_size(permissions) < 2 do
-    {:error, "The value map of an XOR gate must contain a minimum of two elements. Current value: #{inspect(permissions)}"}
-  end
-  defp process_xor(permissions, context, type) when is_map(permissions) do
-    Enum.reduce_while(permissions, %{counters: %{true: 0, false: 0}, access: {:ok, false}}, fn {key, value}, acc ->
-      case dispatch(%{key => value}, context, type) do
         {:ok, true} ->
           case acc.counters.false do
             0 -> {:cont, %{counters: %{true: acc.counters.true + 1, false: acc.counters.false}, access: acc.access}}

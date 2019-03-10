@@ -16,8 +16,23 @@ defmodule AccessCheckerTest do
   end
 
   test "check_access/3 nested permission types" do
-    permissions = %{flag: %{flag: "testflag"}}
+    # Directly nested
+    permissions = %{
+      flag: %{
+        flag: "testflag"
+      }
+    }
     assert LogicalPermissions.AccessChecker.check_access(permissions, {}, false) == {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: flag. Evaluated permissions: %{flag: \"testflag\"}"}
+
+    # Indirectly nested
+#     permissions = %{
+#       flag: %{
+#         or: %{
+#           flag: "testflag"
+#         }
+#       }
+#     }
+#     assert LogicalPermissions.AccessChecker.check_access(permissions, {}, false) == {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: flag. Evaluated permissions: %{flag: \"testflag\"}"}
   end
 end
 
