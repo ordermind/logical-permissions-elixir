@@ -12,7 +12,7 @@ defmodule AccessCheckerTest do
 
   test "check_access/3 wrong permission value type" do
     permissions = %{flag: 50}
-    assert LogicalPermissions.AccessChecker.check_access(permissions, {}, false) == {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(permissions)}"}
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(permissions)}"}
   end
 
   test "check_access/3 nested permission types" do
@@ -22,7 +22,7 @@ defmodule AccessCheckerTest do
         flag: "testflag"
       }
     }
-    assert LogicalPermissions.AccessChecker.check_access(permissions, {}, false) == {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: flag. Evaluated permissions: %{flag: \"testflag\"}"}
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: flag. Evaluated permissions: %{flag: \"testflag\"}"}
 
     # Indirectly nested
     permissions = %{
@@ -32,7 +32,18 @@ defmodule AccessCheckerTest do
         }
       }
     }
-    assert LogicalPermissions.AccessChecker.check_access(permissions, {}, false) == {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: flag. Evaluated permissions: %{flag: \"testflag\"}"}
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: flag. Evaluated permissions: %{flag: \"testflag\"}"}
+  end
+
+  test "check_access/3 unregistered type" do
+    permissions = %{
+      unregistered: "test"
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "The permission type 'unregistered' has not been registered. Please refer to the documentation regarding how to register a permission type."}
+  end
+
+  test "check_access/2 wrong context param type" do
+    assert LogicalPermissions.AccessChecker.check_access(false, 0) == {:error, "The context parameter must be a map."}
   end
 end
 

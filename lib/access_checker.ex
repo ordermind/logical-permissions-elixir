@@ -32,8 +32,14 @@ defmodule LogicalPermissions.AccessChecker do
     end
   end
 
-  def check_access(permissions, context \\ {}, allow_bypass \\ true)
-  def check_access(permissions, context, allow_bypass) when is_map(permissions) and is_tuple(context) and is_boolean(allow_bypass) do
+  def check_access(permissions, context \\ %{}, allow_bypass \\ true)
+  def check_access(_, context, _) when not is_map(context) do
+    {:error, "The context parameter must be a map."}
+  end
+  def check_access(_, _, allow_bypass) when not is_boolean(allow_bypass) do
+    {:error, "The allow_bypass parameter must be a boolean."}
+  end
+  def check_access(permissions, context, allow_bypass) when is_map(permissions) do
     allow_bypass =
       cond do
         allow_bypass && Map.has_key?(permissions, :no_bypass) ->
@@ -52,14 +58,17 @@ defmodule LogicalPermissions.AccessChecker do
       true -> process_or(permissions, context, nil)
     end
   end
-  def check_access(permissions, context, allow_bypass) when is_boolean(permissions) and is_tuple(context) and is_boolean(allow_bypass) do
-    dispatch(permissions)
+  def check_access(permissions, context, allow_bypass) when is_boolean(permissions) do
+    cond do
+      allow_bypass && check_bypass_access(context) == {:ok, true} -> {:ok, true}
+      true -> dispatch(permissions, context, nil)
+    end
   end
   def check_access(_, _, _) do
     {:error, "The permissions parameter must be a map or a boolean."}
   end
 
-  defp dispatch(permissions, context \\ {}, type \\ nil)
+  defp dispatch(permissions, context, type)
   defp dispatch(permissions, _, nil) when is_boolean(permissions) do
     {:ok, permissions}
   end

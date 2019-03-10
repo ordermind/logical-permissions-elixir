@@ -1,3 +1,3 @@
 defmodule LogicalPermissions.BypassAccessChecker do
-  @callback check_bypass_access(Tuple.t) :: {:ok, Boolean.t} | {:error, String.t}
+  @callback check_bypass_access(Map.t) :: {:ok, Boolean.t} | {:error, String.t}
 end
