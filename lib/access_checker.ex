@@ -13,7 +13,7 @@ defmodule LogicalPermissions.AccessChecker do
   # Fallback check_permission() function that returns a helpful error message for types that haven't been registered
   @spec check_permission(atom, String.t, Tuple.t) :: {:ok, Boolean.t} | {:error, String.t}
   defp check_permission(permission_type_name, _, _) do
-    {:error, "The permission type '#{permission_type_name}' has not been registered. Please refer to the documentation regarding how to register a permission type."}
+    {:error, "The permission type #{inspect(permission_type_name)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
   end
 
   def unquote(:"get_valid_permission_keys")() do
@@ -40,23 +40,25 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "The allow_bypass parameter must be a boolean."}
   end
   def check_access(permissions, context, allow_bypass) when is_map(permissions) do
-    allow_bypass =
-      cond do
-        allow_bypass && Map.has_key?(permissions, :no_bypass) ->
-          case Map.fetch(permissions, :no_bypass) do
-            no_bypass when is_map(no_bypass) -> !process_or(no_bypass, context, nil)
-            no_bypass when is_boolean(no_bypass) -> !no_bypass
-            _ -> false
-          end
-        true ->
-          allow_bypass
+    allow_bypass_result = check_allow_bypass(permissions, context, allow_bypass)
+    bypass_access =
+      case allow_bypass_result do
+        {:ok, true} -> check_bypass_access(context)
+        {:ok, false} -> {:ok, false}
+        {:error, reason} -> {:error, reason}
       end
     permissions = Map.drop(permissions, [:no_bypass])
 
     cond do
-      allow_bypass && check_bypass_access(context) == {:ok, true} -> {:ok, true}
+      elem(allow_bypass_result, 0) == :error -> {:error, "Error checking if bypassing access should be allowed: #{elem(allow_bypass_result, 1)}"}
+      elem(bypass_access, 0) == :error -> {:error, "Error checking access bypass: #{elem(bypass_access, 1)}"}
+      bypass_access == {:ok, true} -> {:ok, true}
       Enum.count(permissions) == 0 -> {:ok, true}
-      true -> process_or(permissions, context, nil)
+      true ->
+        case dispatch(permissions, context, nil) do
+          {:ok, value} -> {:ok, value}
+          {:error, reason} -> {:error, "Error checking access: #{reason}"}
+        end
     end
   end
   def check_access(permissions, context, allow_bypass) when is_boolean(permissions) do
@@ -69,12 +71,36 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "The permissions parameter must be a map or a boolean."}
   end
 
+  defp check_allow_bypass(permissions, context, allow_bypass) do
+    case allow_bypass do
+      false -> {:ok, false}
+      true ->
+        case Map.fetch(permissions, :no_bypass) do
+          {:ok, no_bypass} ->
+            cond do
+              is_map(no_bypass) or is_boolean(no_bypass) ->
+                case dispatch(no_bypass, context, nil) do
+                  {:ok, value} -> {:ok, !value}
+                  {:error, reason} -> {:error, reason}
+                end
+              true ->
+                {:error, "The no_bypass value must be either a boolean or a map. Current value: #{inspect(no_bypass)}"}
+            end
+
+          :error -> {:ok, true}
+        end
+    end
+  end
+
   defp dispatch(permissions, context, type)
   defp dispatch(permissions, _, nil) when is_boolean(permissions) do
     {:ok, permissions}
   end
   defp dispatch(permissions, _, type) when is_boolean(permissions) do
-    {:error, "You cannot put a boolean permission as a descendant to a permission type. Existing type: #{type}. Evaluated permissions: #{inspect(permissions)}"}
+    {:error, "You cannot put a boolean permission as a descendant to a permission type. Existing type: #{inspect(type)}. Evaluated permissions: #{inspect(permissions)}"}
+  end
+  defp dispatch(permissions, _, nil) when is_binary(permissions) do
+    {:error, "A permission check is attempted but no type has been supplied. Evaluated permissions: #{inspect(permissions)}"}
   end
   defp dispatch(permissions, context, type) when is_binary(permissions) do
     check_permission(type, permissions, context)
@@ -96,9 +122,9 @@ defmodule LogicalPermissions.AccessChecker do
       n when is_atom(n) ->
         cond do
           type ->
-            {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{type}. Evaluated permissions: #{inspect(%{key => value})}"}
+            {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{inspect(type)}. Evaluated permissions: #{inspect(%{key => value})}"}
           !LogicalPermissions.PermissionTypeBuilder.type_exists?(key) ->
-            {:error, "The permission type '#{key}' has not been registered. Please refer to the documentation regarding how to register a permission type."}
+            {:error, "The permission type #{inspect(key)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
           true ->
             case value do
               n when is_list(n) -> process_or(value, context, key)
