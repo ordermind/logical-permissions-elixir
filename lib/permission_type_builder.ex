@@ -6,7 +6,7 @@ defmodule LogicalPermissions.PermissionTypeBuilder do
   # Generate functions for each permission type
   Enum.each(permission_types, fn({name, module}) ->
     case LogicalPermissions.Validator.is_valid?({name, module}) do
-      {:error, message} -> raise InvalidPermissionTypeError, message: "Error adding permission type '#{name}': #{message}"
+      {:error, message} -> raise InvalidPermissionTypeError, message: "Error adding permission type #{inspect(name)}: #{inspect(message)}"
       {:ok, true} -> nil
     end
 
@@ -29,7 +29,7 @@ defmodule LogicalPermissions.PermissionTypeBuilder do
   # Fallback get_module function that returns a helpful error message for types that haven't been registered
   @spec get_module(atom) :: {:ok, Module.t,} | {:error, String.t}
   def get_module(permission_type) do
-    {:error, "The permission type '#{permission_type}' has not been registered. Please refer to the documentation regarding how to register a permission type."}
+    {:error, "The permission type #{inspect(permission_type)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
   end
 
   # Generate a function that returns valid permission types

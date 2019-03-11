@@ -8,7 +8,8 @@ defmodule LogicalPermissions.MixProject do
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env),
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      test_paths: test_paths(Mix.env)
     ]
   end
 
@@ -27,6 +28,10 @@ defmodule LogicalPermissions.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test), do: ["lib","test/support"]
+  defp elixirc_paths(:test_full), do: ["lib", "test/full", "test/shared"]
+  defp elixirc_paths(:test_no_bypass_access_checker), do: ["lib", "test/no_bypass_access_checker", "test/shared"]
   defp elixirc_paths(_), do: ["lib"]
+
+  defp test_paths(:test_full), do: ["test/full"]
+  defp test_paths(:test_no_bypass_access_checker), do: ["test/no_bypass_access_checker"]
 end

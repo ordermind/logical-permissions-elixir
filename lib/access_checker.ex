@@ -6,7 +6,11 @@ defmodule LogicalPermissions.AccessChecker do
   # Generate a function for checking permission for each permission type
   Enum.each(LogicalPermissions.PermissionTypeBuilder.get_permission_types(), fn {name, module} ->
     defp unquote(:"check_permission")(unquote(name), value, context) do
-      apply(unquote(module), :check_permission, [value, context])
+      case apply(unquote(module), :check_permission, [value, context]) do
+        {:ok, access} when is_boolean(access) -> {:ok, access}
+        {:error, reason} when is_binary(reason) -> {:error, reason}
+        result -> {:error, "An unexpected value was returned from #{unquote(module)}.check_permission/2. Please refer to the behavior to see what kind of values are valid. Received value: #{inspect(result)}"}
+      end
     end
   end)
 
@@ -22,13 +26,17 @@ defmodule LogicalPermissions.AccessChecker do
 
   # Generate a function for checking access bypass if a bypass access checker is available, otherwise generate a fallback function
   case LogicalPermissions.BypassAccessCheckerBuilder.get_module do
-  module ->
-    defp unquote(:"check_bypass_access")(context) do
-      apply(unquote(module), :check_bypass_access, [context])
-    end
   nil ->
     defp unquote(:"check_bypass_access")(_) do
       {:ok, false}
+    end
+  module ->
+    defp unquote(:"check_bypass_access")(context) do
+      case apply(unquote(module), :check_bypass_access, [context]) do
+        {:ok, access} when is_boolean(access) -> {:ok, access}
+        {:error, reason} when is_binary(reason) -> {:error, reason}
+        result -> {:error, "An unexpected value was returned from #{unquote(module)}.check_bypass_access/1. Please refer to the behavior to see what kind of values are valid. Received value: #{inspect(result)}"}
+      end
     end
   end
 
@@ -56,7 +64,7 @@ defmodule LogicalPermissions.AccessChecker do
       Enum.count(permissions) == 0 -> {:ok, true}
       true ->
         case dispatch(permissions, context, nil) do
-          {:ok, value} -> {:ok, value}
+          {:ok, access} -> {:ok, access}
           {:error, reason} -> {:error, "Error checking access: #{reason}"}
         end
     end
