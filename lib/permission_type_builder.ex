@@ -1,22 +1,22 @@
 defmodule LogicalPermissions.PermissionTypeBuilder do
-  require LogicalPermissions.Validator
+  require LogicalPermissions.PermissionTypeValidator
 
   permission_types = Application.get_env(:logical_permissions, :permission_types, [])
 
   # Generate functions for each permission type
   Enum.each(permission_types, fn({name, module}) ->
-    case LogicalPermissions.Validator.is_valid?({name, module}) do
-      {:error, message} -> raise InvalidPermissionTypeError, message: "Error adding permission type #{inspect(name)}: #{inspect(message)}"
-      {:ok, true} -> nil
-    end
+    case LogicalPermissions.PermissionTypeValidator.is_valid({name, module}) do
+      {:ok, true} ->
+        # Generate a type_exists? function for this type
+        def unquote(:"type_exists?")(unquote(name)) do
+          true
+        end
 
-    # Generate a type_exists? function for this type
-    def unquote(:"type_exists?")(unquote(name)) do
-      true
-    end
-    # Generate a get_module function for this type
-    def unquote(:"get_module")(unquote(name)) do
-      {:ok, unquote(module)}
+        # Generate a get_module function for this type
+        def unquote(:"get_module")(unquote(name)) do
+          {:ok, unquote(module)}
+        end
+      {:error, message} -> IO.warn("Error adding permission type #{inspect(name)}: #{inspect(message)}")
     end
   end)
 

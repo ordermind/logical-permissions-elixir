@@ -30,8 +30,10 @@ defmodule LogicalPermissions.MixProject do
 
   defp elixirc_paths(:test_full), do: ["lib", "test/full", "test/shared"]
   defp elixirc_paths(:test_no_bypass_access_checker), do: ["lib", "test/no_bypass_access_checker", "test/shared"]
+  defp elixirc_paths(:test_compile_warnings), do: ["lib", "test/compile_warnings", "test/shared"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp test_paths(:test_full), do: ["test/full"]
   defp test_paths(:test_no_bypass_access_checker), do: ["test/no_bypass_access_checker"]
+  defp test_paths(:test_compile_warnings), do: ["test/compile_warnings"]
 end

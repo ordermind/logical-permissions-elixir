@@ -1,7 +1,7 @@
 defmodule LogicalPermissions.AccessChecker do
   require LogicalPermissions.PermissionTypeBuilder
   require LogicalPermissions.BypassAccessCheckerBuilder
-  require LogicalPermissions.Validator
+  require LogicalPermissions.PermissionTypeValidator
 
   # Generate a function for checking permission for each permission type
   Enum.each(LogicalPermissions.PermissionTypeBuilder.get_permission_types(), fn {name, module} ->
@@ -21,7 +21,7 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   def unquote(:"get_valid_permission_keys")() do
-    Enum.concat(unquote(LogicalPermissions.Validator.get_reserved_permission_keys), Keyword.keys(unquote(LogicalPermissions.PermissionTypeBuilder.get_permission_types)))
+    Enum.concat(unquote(LogicalPermissions.PermissionTypeValidator.get_reserved_permission_keys), Keyword.keys(unquote(LogicalPermissions.PermissionTypeBuilder.get_permission_types)))
   end
 
   # Generate a function for checking access bypass if a bypass access checker is available, otherwise generate a fallback function
