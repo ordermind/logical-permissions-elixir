@@ -36,4 +36,5 @@ defmodule LogicalPermissions.MixProject do
   defp test_paths(:test_full), do: ["test/full"]
   defp test_paths(:test_no_bypass_access_checker), do: ["test/no_bypass_access_checker"]
   defp test_paths(:test_compile_warnings), do: ["test/compile_warnings"]
+  defp test_paths(_), do: []
 end
