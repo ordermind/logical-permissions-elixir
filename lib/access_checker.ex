@@ -152,14 +152,8 @@ defmodule LogicalPermissions.AccessChecker do
 
   # AND processing
   defp process_and(permissions, context, type)
-  defp process_and(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
-    {:error, "The value map of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
-  end
   defp process_and(permissions, context, type) when is_map(permissions) do
     process_and(Map.to_list(permissions), context, type)
-  end
-  defp process_and(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
-    {:error, "The value list of an AND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
   end
   defp process_and([h|t], context, type) do
       case dispatch(h, context, type) do
@@ -177,12 +171,6 @@ defmodule LogicalPermissions.AccessChecker do
 
   # NAND processing
   defp process_nand(permissions, context, type)
-  defp process_nand(permissions, _, _) when is_list(permissions) and length(permissions) < 1 do
-    {:error, "The value list of a NAND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
-  end
-  defp process_nand(permissions, _, _) when is_map(permissions) and map_size(permissions) < 1 do
-    {:error, "The value map of a NAND gate must contain a minimum of one element. Current value: #{inspect(permissions)}"}
-  end
   defp process_nand(permissions, context, type) when is_list(permissions) or is_map(permissions) do
     case process_and(permissions, context, type) do
       {:ok, value} -> {:ok, !value}
@@ -248,24 +236,27 @@ defmodule LogicalPermissions.AccessChecker do
     {:ok, false}
   end
   defp process_xor(permissions, _, _, _) do
-    {:error, "The value of an XOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
+    {:error, "The value of a XOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
   # NOT processing
   defp process_not(permissions, context, type)
+  defp process_not(permissions, _, _) when is_list(permissions) and length(permissions) != 1 do
+    {:error, "The value list of a NOT gate must contain exactly one element. Current value: #{inspect(permissions)}"}
+  end
   defp process_not(permissions, _, _) when is_map(permissions) and map_size(permissions) != 1 do
     {:error, "The value map of a NOT gate must contain exactly one element. Current value: #{inspect(permissions)}"}
   end
-  defp process_not(permissions, context, type) when is_map(permissions) do
-    !dispatch(permissions, context, type)
-  end
   defp process_not(permissions, _, _) when is_binary(permissions) and permissions == "" do
-    {:error, "The value of a NOT gate cannot have an empty string as its value."}
+    {:error, "The value of a NOT gate cannot be an empty string."}
   end
-  defp process_not(permissions, context, type) when is_binary(permissions) do
-    !dispatch(permissions, context, type)
+  defp process_not(permissions, context, type) when is_list(permissions) or is_map(permissions) or is_binary(permissions) do
+    case dispatch(permissions, context, type) do
+      {:ok, value} -> {:ok, !value}
+      {:error, reason} -> {:error, reason}
+    end
   end
   defp process_not(permissions, _, _) do
-    {:error, "The value of a NOT gate must either be a map or a string. Current value: #{inspect(permissions)}"}
+    {:error, "The value of a NOT gate must either be a list, a map or a string. Current value: #{inspect(permissions)}"}
   end
 end
