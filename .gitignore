@@ -4,7 +4,9 @@
 !/README.md
 !/LICENSE
 !/config
+!/config/*
 !/lib
+!/lib/*
 !/test
 !/test/*
 !*.ex
