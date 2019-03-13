@@ -7,7 +7,7 @@ defmodule AccessCheckerTest do
   end
 
   test "check_access/1 wrong permissions param type" do
-    assert LogicalPermissions.AccessChecker.check_access(0) == {:error, "The permissions parameter must be a map or a boolean."}
+    assert LogicalPermissions.AccessChecker.check_access(0) == {:error, "The permissions parameter must be either a list, a map or a boolean."}
   end
 
   test "check_access/3 wrong permission value type" do
@@ -70,12 +70,12 @@ defmodule AccessCheckerTest do
   end
 
   test "check_access/1 no_bypass wrong type" do
-    permissions = %{
-      0 => false,
+    permissions = [
+      false,
       no_bypass: "test"
-    }
+    ]
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:error, "Error checking if bypassing access should be forbidden: The no_bypass value must be either a boolean or a map. Current value: \"test\""}
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:error, "Error checking if bypassing access should be forbidden: The no_bypass value must be either a list, a map or a boolean. Current value: \"test\""}
   end
 
   test "check_access/3 no_bypass illegal descendant" do
@@ -107,19 +107,40 @@ defmodule AccessCheckerTest do
   end
 
   test "check_access/1 no_bypass boolean allow" do
-    permissions = %{
-      0 => false,
+    permissions = [
+      false,
       no_bypass: false
-    }
+    ]
 
     assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, true}
   end
 
   test "check_access/1 no_bypass boolean deny" do
-    permissions = %{
-      0 => false,
+    permissions = [
+      false,
       no_bypass: true
-    }
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, false}
+  end
+
+  test "check_access/3 multiple no_bypass boolean deny" do
+    permissions = [
+      false,
+      no_bypass: true,
+      no_bypass: false,
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, false}
+  end
+
+  test "check_access/3 no_bypass mixed list types" do
+    permissions = [
+      false,
+      no_bypass: [
+        true,
+      ],
+    ]
 
     assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, false}
   end
@@ -129,12 +150,12 @@ defmodule AccessCheckerTest do
       id: 1,
       never_bypass: false
     }
-    permissions = %{
-      0 => false,
+    permissions = [
+      false,
       no_bypass: %{
         flag: "never_bypass"
       }
-    }
+    ]
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}) == {:ok, true}
   end
@@ -144,12 +165,12 @@ defmodule AccessCheckerTest do
       id: 1,
       never_bypass: true
     }
-    permissions = %{
-      0 => false,
+    permissions = [
+      false,
       no_bypass: %{
         flag: "never_bypass"
       }
-    }
+    ]
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}) == {:ok, false}
   end
@@ -178,11 +199,11 @@ defmodule AccessCheckerTest do
   end
 
   test "check_access/3 test access multiple types shorthand OR" do
-    permissions = %{
+    permissions = [
       flag: "testflag",
       role: "admin",
-      misc: "test",
-    }
+      flag: "test",
+    ]
 
     user = %{
       id: 1,

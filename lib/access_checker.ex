@@ -48,6 +48,9 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "The allow_bypass parameter must be a boolean."}
   end
   def check_access(permissions, context, allow_bypass) when is_map(permissions) do
+    check_access(Map.to_list(permissions), context, allow_bypass)
+  end
+  def check_access(permissions, context, allow_bypass) when is_list(permissions) do
     no_bypass = check_no_bypass(permissions, context, allow_bypass)
     bypass_access =
       case no_bypass do
@@ -55,7 +58,9 @@ defmodule LogicalPermissions.AccessChecker do
         {:ok, false} -> check_bypass_access(context)
         {:error, _} -> nil
       end
-    permissions = Map.drop(permissions, [:no_bypass])
+
+    # Delete all occurrences of :no_bypass in the first level of permissions
+    permissions = permissions -- for {:no_bypass, value} <- permissions, do: {:no_bypass, value}
 
     cond do
       elem(no_bypass, 0) == :error -> {:error, "Error checking if bypassing access should be forbidden: #{elem(no_bypass, 1)}"}
@@ -76,23 +81,23 @@ defmodule LogicalPermissions.AccessChecker do
     end
   end
   def check_access(_, _, _) do
-    {:error, "The permissions parameter must be a map or a boolean."}
+    {:error, "The permissions parameter must be either a list, a map or a boolean."}
   end
 
   defp check_no_bypass(permissions, context, allow_bypass) do
     case allow_bypass do
       false -> {:ok, true}
       true ->
-        case Map.fetch(permissions, :no_bypass) do
+        case Keyword.fetch(permissions, :no_bypass) do
           {:ok, no_bypass} ->
             cond do
-              is_map(no_bypass) or is_boolean(no_bypass) ->
+              is_list(no_bypass) or is_map(no_bypass) or is_boolean(no_bypass) ->
                 case dispatch(no_bypass, context, nil) do
                   {:ok, value} -> {:ok, value}
                   {:error, reason} -> {:error, reason}
                 end
               true ->
-                {:error, "The no_bypass value must be either a boolean or a map. Current value: #{inspect(no_bypass)}"}
+                {:error, "The no_bypass value must be either a list, a map or a boolean. Current value: #{inspect(no_bypass)}"}
             end
 
           :error -> {:ok, false}
