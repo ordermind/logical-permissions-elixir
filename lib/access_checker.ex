@@ -41,9 +41,6 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   def check_access(permissions, context \\ %{}, allow_bypass \\ true)
-  def check_access(_, context, _) when not is_map(context) do
-    {:error, "The context parameter must be a map."}
-  end
   def check_access(_, _, allow_bypass) when not is_boolean(allow_bypass) do
     {:error, "The allow_bypass parameter must be a boolean."}
   end
@@ -75,9 +72,20 @@ defmodule LogicalPermissions.AccessChecker do
     end
   end
   def check_access(permissions, context, allow_bypass) when is_boolean(permissions) do
-    cond do
-      allow_bypass && check_bypass_access(context) == {:ok, true} -> {:ok, true}
-      true -> dispatch(permissions, context, nil)
+    bypass_access =
+      case allow_bypass do
+        true -> check_bypass_access(context)
+        false -> {:ok, false}
+      end
+
+    case bypass_access do
+      {:ok, true} -> {:ok, true}
+      {:ok, false} ->
+        case dispatch(permissions, context, nil) do
+          {:ok, access} -> {:ok, access}
+          {:error, reason} -> {:error, "Error checking access: #{reason}"}
+        end
+      {:error, reason} -> {:error, "Error checking access bypass: #{reason}"}
     end
   end
   def check_access(_, _, _) do

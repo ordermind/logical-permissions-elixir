@@ -45,10 +45,6 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: The permission type :unregistered has not been registered. Please refer to the documentation regarding how to register a permission type."}
   end
 
-  test "check_access/2 wrong context param type" do
-    assert LogicalPermissions.AccessChecker.check_access(false, 0) == {:error, "The context parameter must be a map."}
-  end
-
   test "check_access/3 wrong allow_bypass param type" do
     assert LogicalPermissions.AccessChecker.check_access(false, %{}, "test") == {:error, "The allow_bypass parameter must be a boolean."}
   end
@@ -67,6 +63,14 @@ defmodule AccessCheckerTest do
 
   test "check_access/3 bypass access deny" do
     assert LogicalPermissions.AccessChecker.check_access(false, %{}, false) == {:ok, false}
+  end
+
+  test "check_access/2 bypass access error list permissions" do
+    assert LogicalPermissions.AccessChecker.check_access([role: "admin"], 0) == {:error, "Error checking access bypass: The context parameter must be a map."}
+  end
+
+  test "check_access/2 bypass access error boolean permission" do
+    assert LogicalPermissions.AccessChecker.check_access(false, 0) == {:error, "Error checking access bypass: The context parameter must be a map."}
   end
 
   test "check_access/1 no_bypass wrong type" do
@@ -1009,5 +1013,180 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
   end
 
+  test "check_access/3 bool illegal children" do
+    permissions = [
+      true: false
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: A boolean permission cannot have children. Evaluated permissions: %{true: false}"}
+  end
+
+  test "check_access/3 bool TRUE illegal descendant" do
+    permissions = [
+      role: [true]
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: You cannot put a boolean permission as a descendant to a permission type. Existing type: :role. Evaluated permissions: true"}
+  end
+
+  test "check_access/3 bool TRUE" do
+    permissions = [
+      true
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:ok, true}
+  end
+
+  test "check_access/3 bool TRUE list" do
+    permissions = [
+      [true]
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:ok, true}
+  end
+
+  test "check_access/3 bool FALSE illegal descendant" do
+    permissions = [
+      role: [false]
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: You cannot put a boolean permission as a descendant to a permission type. Existing type: :role. Evaluated permissions: false"}
+  end
+
+  test "check_access/3 bool FALSE" do
+    permissions = [
+      false
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:ok, false}
+  end
+
+  test "check_access/3 bool FALSE list" do
+    permissions = [
+      [false]
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:ok, false}
+  end
+
+  test "check_access/3 mixed booleans" do
+    permissions = [
+      true,
+      false,
+    ]
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:ok, true}
+
+    permissions = [
+      or: [
+        true,
+        false,
+      ]
+    ]
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:ok, true}
+
+    permissions = [
+      and: [
+        true,
+        false,
+      ]
+    ]
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:ok, false}
+  end
+
+  test "check_access/3 nested logic" do
+    permissions = [
+      false,
+      role: [
+        or: [
+          not: [
+            and: [
+              "admin",
+              "editor",
+            ],
+          ],
+        ],
+      ],
+    ]
+
+    user = %{
+      id: 1,
+      roles: ["admin", "editor"],
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+    user = %{
+      id: 1,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+    user = Map.put(user, :roles, ["editor"])
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+  end
+
+  test "check_access/3 logic gate first" do
+    permissions = [
+      and: [
+        true,
+        and: [
+          role: [
+            or: [
+              not: [
+                and: [
+                  "admin",
+                  "editor",
+                ],
+              ],
+            ],
+          ],
+        ],
+      ],
+    ]
+
+    user = %{
+      id: 1,
+      roles: ["admin", "editor"],
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+    user = %{
+      id: 1,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+    user = Map.put(user, :roles, ["editor"])
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+  end
+
+  test "check_access/3 shorthand OR mixed numeric and atom keys" do
+    permissions = [
+      role: [
+        "admin",
+        and: [
+          "editor",
+          "writer",
+          or: [
+            "role1",
+            "role2",
+          ],
+        ],
+      ],
+    ]
+
+    user = %{
+      id: 1,
+      roles: ["admin"],
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+    user = %{
+      id: 1,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+    user = Map.put(user, :roles, ["editor"])
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+    user = Map.put(user, :roles, ["editor", "writer"])
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+    user = Map.put(user, :roles, ["editor", "writer", "role1"])
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+    user = Map.put(user, :roles, ["editor", "writer", "role2"])
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+    user = Map.put(user, :roles, ["admin", "writer"])
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+  end
 end
 
