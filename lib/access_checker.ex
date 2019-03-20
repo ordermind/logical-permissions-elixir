@@ -139,7 +139,7 @@ defmodule LogicalPermissions.AccessChecker do
       :nor -> process_nor(value, context, type)
       :xor -> process_xor(value, context, type)
       :not -> process_not(value, context, type)
-      n when n in [true, false] -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(%{key => value})}"}
+      n when is_boolean(n) -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(%{key => value})}"}
       n when is_integer(n) -> dispatch(value, context, type)
       n when is_atom(n) ->
         case type do
