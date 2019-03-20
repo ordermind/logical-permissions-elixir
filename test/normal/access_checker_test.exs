@@ -3,7 +3,7 @@ defmodule AccessCheckerTest do
   doctest LogicalPermissions.AccessChecker
 
   test "get_valid_permission_keys/0" do
-    assert LogicalPermissions.AccessChecker.get_valid_permission_keys == [:no_bypass, :and, :nand, :or, :nor, :xor, :not, true, false, :flag, :role, :invalid_return_value, :misc]
+    assert LogicalPermissions.AccessChecker.get_valid_permission_keys == [:no_bypass, :and, :nand, :or, :nor, :xor, :not, :flag, :role, :invalid_return_value, :misc]
   end
 
   test "check_access/1 wrong permissions param type" do
@@ -49,19 +49,27 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(false, %{}, "test") == {:error, "The allow_bypass parameter must be a boolean."}
   end
 
-  test "check_access/3 empty map allow" do
-    assert LogicalPermissions.AccessChecker.check_access(%{}, %{}, false) == {:ok, true}
+  test "check_access/2 bypass access list allow" do
+    assert LogicalPermissions.AccessChecker.check_access([false], %{bypass_access: true}) == {:ok, true}
   end
 
-  test "check_access/2 bypass access allow" do
+  test "check_access/2 bypass access list deny" do
+    assert LogicalPermissions.AccessChecker.check_access([false], %{bypass_access: false}) == {:ok, false}
+  end
+
+  test "check_access/3 bypass access list deny" do
+    assert LogicalPermissions.AccessChecker.check_access([false], %{}, false) == {:ok, false}
+  end
+
+  test "check_access/2 bypass access boolean allow" do
     assert LogicalPermissions.AccessChecker.check_access(false, %{bypass_access: true}) == {:ok, true}
   end
 
-  test "check_access/2 bypass access deny" do
+  test "check_access/2 bypass access boolean deny" do
     assert LogicalPermissions.AccessChecker.check_access(false, %{bypass_access: false}) == {:ok, false}
   end
 
-  test "check_access/3 bypass access deny" do
+  test "check_access/3 bypass access boolean deny" do
     assert LogicalPermissions.AccessChecker.check_access(false, %{}, false) == {:ok, false}
   end
 
@@ -110,34 +118,6 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, true}
   end
 
-  test "check_access/1 no_bypass boolean allow" do
-    permissions = [
-      false,
-      no_bypass: false
-    ]
-
-    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, true}
-  end
-
-  test "check_access/1 no_bypass boolean deny" do
-    permissions = %{
-      0 => false,
-      no_bypass: true
-    }
-
-    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, false}
-  end
-
-  test "check_access/3 multiple no_bypass boolean deny" do
-    permissions = [
-      false,
-      no_bypass: true,
-      no_bypass: false,
-    ]
-
-    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, false}
-  end
-
   test "check_access/3 no_bypass mixed list types" do
     permissions = [
       false,
@@ -177,6 +157,78 @@ defmodule AccessCheckerTest do
     ]
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}) == {:ok, false}
+  end
+
+  test "check_access/2 no_bypass list allow" do
+    user = %{
+      id: 1,
+      never_bypass: false
+    }
+    permissions = [
+      false,
+      no_bypass: [
+        flag: "never_bypass"
+      ]
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}) == {:ok, true}
+  end
+
+  test "check_access/2 no_bypass list deny" do
+    user = %{
+      id: 1,
+      never_bypass: true
+    }
+    permissions = [
+      false,
+      no_bypass: [
+        flag: "never_bypass"
+      ]
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}) == {:ok, false}
+  end
+
+  test "check_access/1 no_bypass boolean allow" do
+    permissions = [
+      false,
+      no_bypass: false
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, true}
+  end
+
+  test "check_access/1 no_bypass boolean deny" do
+    permissions = %{
+      0 => false,
+      no_bypass: true
+    }
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, false}
+  end
+
+  test "check_access/3 multiple no_bypass boolean deny" do
+    permissions = [
+      false,
+      no_bypass: true,
+      no_bypass: false,
+    ]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:ok, false}
+  end
+
+  test "check_access/3 empty map allow" do
+    assert LogicalPermissions.AccessChecker.check_access(%{}, %{}, false) == {:ok, true}
+  end
+
+  test "check_access/3 empty list allow" do
+    assert LogicalPermissions.AccessChecker.check_access([], %{}, false) == {:ok, true}
+  end
+
+  test "check_access/3 single permission list error" do
+    permissions = [misc: "error"]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: misc permission check error"}
   end
 
   test "check_access/3 single permission allow" do

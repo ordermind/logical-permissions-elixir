@@ -81,11 +81,7 @@ defmodule LogicalPermissions.AccessChecker do
 
     case bypass_access do
       {:ok, true} -> {:ok, true}
-      {:ok, false} ->
-        case dispatch(permissions, context, nil) do
-          {:ok, access} -> {:ok, access}
-          {:error, reason} -> {:error, "Error checking access: #{reason}"}
-        end
+      {:ok, false} -> dispatch(permissions, context, nil) # We don't bother to check for errors here because there is no chance of an error being returned.
       {:error, reason} -> {:error, "Error checking access bypass: #{reason}"}
     end
   end

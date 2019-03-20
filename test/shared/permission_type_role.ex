@@ -1,4 +1,5 @@
 # :role permission type
+
 defmodule LogicalPermissions.Test.Role do
   @behaviour LogicalPermissions.PermissionType
 

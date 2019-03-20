@@ -1,15 +1,14 @@
-# :flag permission type
+# :misc permission type
+
 defmodule LogicalPermissions.Test.Misc do
   @behaviour LogicalPermissions.PermissionType
 
-  # This example callback assumes that there is a map called "user" inside the context map. If the user has a key which corresponds to the flag, and the value
-  # for that key is true, {:ok, true} is returned. In all other cases, {:ok, false} is returned.
-  def check_permission(permission, context) do
-    case Map.fetch(context.user, String.to_atom(permission)) do
-      {:ok, true} -> {:ok, true}
-      {:ok, _} -> {:ok, false}
-      :error -> {:ok, false}
+  # Permission type for testing various outcomes
+  def check_permission(permission, _) do
+    case permission do
+      true -> {:ok, true}
+      false -> {:ok, false}
+      "error" -> {:error, "misc permission check error"}
     end
   end
 end
-

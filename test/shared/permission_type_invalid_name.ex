@@ -1,4 +1,5 @@
 # permission type for testing invalid permission name
+
 defmodule LogicalPermissions.Test.InvalidName do
   @behaviour LogicalPermissions.PermissionType
 

@@ -1,4 +1,5 @@
 # permission type for testing catching invalid return values
+
 defmodule LogicalPermissions.Test.InvalidReturnValue do
   @behaviour LogicalPermissions.PermissionType
 
