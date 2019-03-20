@@ -142,12 +142,8 @@ defmodule LogicalPermissions.AccessChecker do
       n when n in [true, false] -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(%{key => value})}"}
       n when is_integer(n) -> dispatch(value, context, type)
       n when is_atom(n) ->
-        cond do
-          type ->
-            {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{inspect(type)}. Evaluated permissions: #{inspect(%{key => value})}"}
-          !LogicalPermissions.PermissionTypeBuilder.type_exists?(key) ->
-            {:error, "The permission type #{inspect(key)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
-          true ->
+        case type do
+          nil ->
             case value do
               n when is_list(n) -> process_or(value, context, key)
               n when is_map(n) -> process_or(value, context, key)
@@ -155,6 +151,8 @@ defmodule LogicalPermissions.AccessChecker do
               n when is_boolean(n) -> dispatch(value, context, key)
               _ -> {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(%{key => value})}"}
             end
+          _ ->
+            {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{inspect(type)}. Evaluated permissions: #{inspect(%{key => value})}"}
         end
     end
   end
