@@ -25,7 +25,7 @@ defmodule LogicalPermissions.MixProject do
     [
       # {:dep_from_hexpm, "~> 0.3.0"},
       # {:dep_from_git, git: "https://github.com/elixir-lang/my_dep.git", tag: "0.1.0"},
-      {:dialyxir, "~> 1.0.0-rc.4", only: [:test_normal], runtime: false}
+      {:dialyxir, "~> 1.0.0-rc.4", only: [:dialyzer], runtime: false}
     ]
   end
 
@@ -33,6 +33,7 @@ defmodule LogicalPermissions.MixProject do
   defp elixirc_paths(:test_invalid_bypass_access_checker), do: ["lib", "test/invalid_bypass_access_checker", "test/shared"]
   defp elixirc_paths(:test_no_bypass_access_checker), do: ["lib", "test/no_bypass_access_checker", "test/shared"]
   defp elixirc_paths(:test_compile_warnings), do: ["lib", "test/compile_warnings", "test/shared"]
+  defp elixirc_paths(:dialyzer), do: ["lib", "test/shared/valid"]
   defp elixirc_paths(_), do: ["lib"]
 
   defp test_paths(:test_normal), do: ["test/normal"]
