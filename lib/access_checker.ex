@@ -54,7 +54,7 @@ defmodule LogicalPermissions.AccessChecker do
       case no_bypass do
         {:ok, true} -> {:ok, false}
         {:ok, false} -> check_bypass_access(context)
-        {:error, reason} -> {:error, reason}
+        {:error, _} -> nil
       end
 
     # Delete all occurrences of :no_bypass in the first level of permissions
