@@ -225,6 +225,12 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access([], %{}, false) == {:ok, true}
   end
 
+  test "check_access/3 no type error" do
+    permissions = ["no_type"]
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: A permission check is attempted but no type has been supplied. Evaluated permissions: \"no_type\""}
+  end
+
   test "check_access/3 single permission list error" do
     permissions = [misc: "error"]
 
@@ -256,7 +262,25 @@ defmodule AccessCheckerTest do
 
   #----Shorthand OR----#
 
-  test "check_access/3 shorthand OR multiple types" do
+  test "check_access/3 shorthand OR map" do
+    permissions = %{
+      flag: "testflag",
+      role: "admin",
+    }
+
+    user = %{
+      id: 1,
+      testflag: true
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+
+    user = %{
+      id: 1,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+  end
+
+  test "check_access/3 shorthand OR list multiple types" do
     permissions = [
       flag: "testflag",
       role: "admin",
@@ -298,7 +322,7 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
   end
 
-  test "check_access/3 shorthand OR multiple values" do
+  test "check_access/3 shorthand OR list multiple values" do
     permissions = [
       role: ["admin", "writer", "editor"]
     ]
@@ -351,7 +375,23 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:error, "Error checking access: The value of an AND gate must be a list or a map. Current value: \"admin\""}
   end
 
-  test "check_access/3 AND empty value" do
+  test "check_access/3 AND map empty value" do
+    permissions = [
+      role: [
+        and: %{},
+      ],
+    ]
+
+    user = %{
+      id: 1,
+      roles: ["admin"],
+    }
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+  end
+
+
+  test "check_access/3 AND list empty value" do
     permissions = [
       role: [
         and: [],
@@ -366,7 +406,29 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
   end
 
-  test "check_access/3 AND multiple types" do
+  test "check_access/3 AND map" do
+    permissions = %{
+      and: %{
+        flag: "testflag",
+        role: "admin",
+      },
+    }
+
+    user = %{
+      id: 1,
+      testflag: true,
+      roles: ["admin"],
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+
+    user = %{
+      id: 1,
+      testflag: true,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+  end
+
+  test "check_access/3 AND list multiple types" do
     permissions = [
       and: [
         flag: "testflag",
@@ -410,7 +472,7 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
   end
 
-  test "check_access/3 AND multiple values" do
+  test "check_access/3 AND list multiple values" do
     permissions = [
       role: [
         and: ["admin", "writer", "editor"],
@@ -464,7 +526,22 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:error, "Error checking access: The value of a NAND gate must be a list or a map. Current value: \"admin\""}
   end
 
-  test "check_access/3 NAND empty value" do
+  test "check_access/3 NAND map empty value" do
+    permissions = [
+      role: [
+        nand: %{},
+      ],
+    ]
+
+    user = %{
+      id: 1,
+      roles: ["admin"],
+    }
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+  end
+
+  test "check_access/3 NAND list empty value" do
     permissions = [
       role: [
         nand: [],
@@ -479,7 +556,29 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
   end
 
-  test "check_access/3 NAND multiple types" do
+  test "check_access/3 NAND map" do
+    permissions = %{
+      nand: %{
+        flag: "testflag",
+        role: "admin",
+      },
+    }
+
+    user = %{
+      id: 1,
+      testflag: true,
+      roles: ["admin"],
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+
+    user = %{
+      id: 1,
+      testflag: true,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+  end
+
+  test "check_access/3 NAND list multiple types" do
     permissions = [
       nand: [
         flag: "testflag",
@@ -523,7 +622,7 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
   end
 
-  test "check_access/3 NAND multiple values" do
+  test "check_access/3 NAND list multiple values" do
     permissions = [
       role: [
         nand: ["admin", "writer", "editor"],
@@ -578,7 +677,22 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:error, "Error checking access: The value of an OR gate must be a list or a map. Current value: \"admin\""}
   end
 
-  test "check_access/3 OR empty value" do
+  test "check_access/3 OR map empty value" do
+    permissions = [
+      role: [
+        or: %{},
+      ],
+    ]
+
+    user = %{
+      id: 1,
+      roles: ["admin"],
+    }
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+  end
+
+  test "check_access/3 OR list empty value" do
     permissions = [
       role: [
         or: [],
@@ -593,7 +707,27 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
   end
 
-  test "check_access/3 OR multiple types" do
+  test "check_access/3 OR map" do
+    permissions = %{
+      or: %{
+        flag: "testflag",
+        role: "admin",
+      },
+    }
+
+    user = %{
+      id: 1,
+      testflag: true
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+
+    user = %{
+      id: 1,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+  end
+
+  test "check_access/3 OR list multiple types" do
     permissions = [
       or: [
         flag: "testflag",
@@ -637,7 +771,7 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
   end
 
-  test "check_access/3 OR multiple values" do
+  test "check_access/3 OR list multiple values" do
     permissions = [
       role: [
         or: ["admin", "writer", "editor"],
@@ -691,7 +825,22 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:error, "Error checking access: The value of a NOR gate must be a list or a map. Current value: \"admin\""}
   end
 
-  test "check_access/3 NOR empty value" do
+  test "check_access/3 NOR map empty value" do
+    permissions = [
+      role: [
+        nor: %{},
+      ],
+    ]
+
+    user = %{
+      id: 1,
+      roles: ["admin"],
+    }
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+  end
+
+  test "check_access/3 NOR list empty value" do
     permissions = [
       role: [
         nor: [],
@@ -706,7 +855,27 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
   end
 
-  test "check_access/3 NOR multiple types" do
+  test "check_access/3 NOR map" do
+    permissions = %{
+      nor: %{
+        flag: "testflag",
+        role: "admin",
+      },
+    }
+
+    user = %{
+      id: 1,
+      testflag: true
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+
+    user = %{
+      id: 1,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+  end
+
+  test "check_access/3 NOR list multiple types" do
     permissions = [
       nor: [
         flag: "testflag",
@@ -750,7 +919,7 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
   end
 
-  test "check_access/3 NOR multiple values" do
+  test "check_access/3 NOR list multiple values" do
     permissions = [
       role: [
         nor: ["admin", "writer", "editor"],
@@ -819,7 +988,34 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
   end
 
-  test "check_access/3 XOR multiple types" do
+  test "check_access/3 XOR map" do
+    permissions = %{
+      xor: %{
+        flag: "testflag",
+        role: "admin",
+      },
+    }
+
+    user = %{
+      id: 1,
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+
+    user = %{
+      id: 1,
+      testflag: true
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
+
+    user = %{
+      id: 1,
+      testflag: true,
+      roles: ["admin"]
+    }
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
+  end
+
+  test "check_access/3 XOR list multiple types" do
     permissions = [
       xor: [
         flag: "testflag",
@@ -863,7 +1059,7 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
   end
 
-  test "check_access/3 XOR multiple values" do
+  test "check_access/3 XOR list multiple values" do
     permissions = [
       role: [
         xor: ["admin", "writer", "editor"],
@@ -1019,12 +1215,12 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
   end
 
-  test "check_access/3 NOT list" do
+  test "check_access/3 NOT map" do
     permissions = [
       role: [
-        not: [
-          "admin",
-        ],
+        not: %{
+          0 => "admin",
+        },
       ],
     ]
 
@@ -1042,12 +1238,12 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
   end
 
-  test "check_access/3 NOT map" do
+  test "check_access/3 NOT list" do
     permissions = [
       role: [
-        not: %{
-          0 => "admin",
-        },
+        not: [
+          "admin",
+        ],
       ],
     ]
 
