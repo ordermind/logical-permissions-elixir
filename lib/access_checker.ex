@@ -40,8 +40,11 @@ defmodule LogicalPermissions.AccessChecker do
     end
   end
 
-  @spec check_access(boolean() | map() | list(), any(), boolean()) :: {:ok, boolean()} | {:error, binary()}
+  @spec check_access(boolean() | map() | list(), map(), boolean()) :: {:ok, boolean()} | {:error, binary()}
   def check_access(permissions, context \\ %{}, allow_bypass \\ true)
+  def check_access(_, context, _) when not is_map(context) do
+    {:error, "The context parameter must be a map."}
+  end
   def check_access(_, _, allow_bypass) when not is_boolean(allow_bypass) do
     {:error, "The allow_bypass parameter must be a boolean."}
   end

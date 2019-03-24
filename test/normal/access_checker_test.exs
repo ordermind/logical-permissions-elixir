@@ -45,6 +45,10 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: The permission type :unregistered has not been registered. Please refer to the documentation regarding how to register a permission type."}
   end
 
+  test "check_access/3 wrong context param type" do
+    assert LogicalPermissions.AccessChecker.check_access(false, 0) == {:error, "The context parameter must be a map."}
+  end
+
   test "check_access/3 wrong allow_bypass param type" do
     assert LogicalPermissions.AccessChecker.check_access(false, %{}, "test") == {:error, "The allow_bypass parameter must be a boolean."}
   end
@@ -74,11 +78,11 @@ defmodule AccessCheckerTest do
   end
 
   test "check_access/2 bypass access error list permissions" do
-    assert LogicalPermissions.AccessChecker.check_access([role: "admin"], 0) == {:error, "Error checking access bypass: The context parameter must be a map."}
+    assert LogicalPermissions.AccessChecker.check_access([role: "admin"], %{error: "Test error"}) == {:error, "Error checking access bypass: Test error"}
   end
 
   test "check_access/2 bypass access error boolean permission" do
-    assert LogicalPermissions.AccessChecker.check_access(false, 0) == {:error, "Error checking access bypass: The context parameter must be a map."}
+    assert LogicalPermissions.AccessChecker.check_access(false, %{error: "Test error"}) == {:error, "Error checking access bypass: Test error"}
   end
 
   test "check_access/1 no_bypass wrong type" do

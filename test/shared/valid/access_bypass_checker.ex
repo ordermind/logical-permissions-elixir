@@ -1,10 +1,10 @@
 defmodule LogicalPermissions.Test.BypassAccessChecker do
   @behaviour LogicalPermissions.BypassAccessChecker
 
-  def check_bypass_access(context) when is_map(context) do
-    {:ok, Map.get(context, :bypass_access, true)}
-  end
-  def check_bypass_access(_) do
-    {:error, "The context parameter must be a map."}
+  def check_bypass_access(context) do
+    case Map.get(context, :error) do
+      nil -> {:ok, Map.get(context, :bypass_access, true)}
+      reason -> {:error, reason}
+    end
   end
 end
