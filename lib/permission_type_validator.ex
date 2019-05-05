@@ -1,7 +1,7 @@
 defmodule LogicalPermissions.PermissionTypeValidator do
   reserved_permission_keys = [:no_bypass, :and, :nand, :or, :nor, :xor, :not]
 
-  def unquote(:"is_valid")({name, module}) do
+  def unquote(:is_valid)({name, module}) do
     valid_module =
       module.module_info[:attributes]
         |> Keyword.get(:behaviour, [])
@@ -14,7 +14,7 @@ defmodule LogicalPermissions.PermissionTypeValidator do
     end
   end
 
-  def unquote(:"get_reserved_permission_keys")() do
+  def unquote(:get_reserved_permission_keys)() do
     unquote(reserved_permission_keys)
   end
 end

@@ -5,7 +5,7 @@ defmodule LogicalPermissions.AccessChecker do
 
   # Generate a function for checking permission for each permission type
   Enum.each(LogicalPermissions.PermissionTypeBuilder.get_permission_types(), fn {name, module} ->
-    defp unquote(:"check_permission")(unquote(name), value, context) do
+    defp unquote(:check_permission)(unquote(name), value, context) do
       case apply(unquote(module), :check_permission, [value, context]) do
         {:ok, access} when is_boolean(access) -> {:ok, access}
         {:error, reason} when is_binary(reason) -> {:error, reason}
@@ -20,18 +20,18 @@ defmodule LogicalPermissions.AccessChecker do
     {:error, "The permission type #{inspect(permission_type_name)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
   end
 
-  def unquote(:"get_valid_permission_keys")() do
+  def unquote(:get_valid_permission_keys)() do
     Enum.concat(unquote(LogicalPermissions.PermissionTypeValidator.get_reserved_permission_keys), Keyword.keys(unquote(LogicalPermissions.PermissionTypeBuilder.get_permission_types)))
   end
 
   # Generate a function for checking access bypass if a bypass access checker is available, otherwise generate a fallback function
   case LogicalPermissions.BypassAccessCheckerBuilder.get_module do
   nil ->
-    defp unquote(:"check_bypass_access")(_) do
+    defp unquote(:check_bypass_access)(_) do
       {:ok, false}
     end
   module ->
-    defp unquote(:"check_bypass_access")(context) do
+    defp unquote(:check_bypass_access)(context) do
       case apply(unquote(module), :check_bypass_access, [context]) do
         {:ok, access} when is_boolean(access) -> {:ok, access}
         {:error, reason} when is_binary(reason) -> {:error, reason}

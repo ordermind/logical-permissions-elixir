@@ -8,12 +8,12 @@ defmodule LogicalPermissions.PermissionTypeBuilder do
     case LogicalPermissions.PermissionTypeValidator.is_valid({name, module}) do
       {:ok, true} ->
         # Generate a type_exists? function for this type
-        def unquote(:"type_exists?")(unquote(name)) do
+        def unquote(:type_exists?)(unquote(name)) do
           true
         end
 
         # Generate a get_module function for this type
-        def unquote(:"get_module")(unquote(name)) do
+        def unquote(:get_module)(unquote(name)) do
           {:ok, unquote(module)}
         end
       {:error, message} -> IO.warn("Error adding permission type #{inspect(name)}: #{inspect(message)}")
@@ -33,7 +33,7 @@ defmodule LogicalPermissions.PermissionTypeBuilder do
   end
 
   # Generate a function that returns valid permission types
-  def unquote(:"get_permission_types")() do
+  def unquote(:get_permission_types)() do
     unquote(permission_types)
   end
 end
