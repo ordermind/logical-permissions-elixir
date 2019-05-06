@@ -5,7 +5,7 @@ defmodule LogicalPermissions.PermissionTypeBuilder do
 
   # Generate functions for each permission type
   Enum.each(permission_types, fn({name, module}) ->
-    case LogicalPermissions.PermissionTypeValidator.is_valid({name, module}) do
+    case LogicalPermissions.PermissionTypeValidator.is_valid({name}) do
       {:ok, true} ->
         # Generate a type_exists? function for this type
         def unquote(:type_exists?)(unquote(name)) do
