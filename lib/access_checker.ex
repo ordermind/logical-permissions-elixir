@@ -15,7 +15,7 @@ defmodule LogicalPermissions.AccessChecker do
   end)
 
   # Fallback check_permission() function that returns a helpful error message for types that haven't been registered
-  @spec check_permission(atom(), binary(), tuple()) :: {:ok, boolean()} | {:error, binary()}
+  @spec check_permission(atom(), binary(), map()) :: {:ok, boolean()} | {:error, binary()}
   defp check_permission(permission_type_name, _, _) do
     {:error, "The permission type #{inspect(permission_type_name)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
   end
