@@ -126,6 +126,9 @@ defmodule LogicalPermissions.AccessChecker do
   defp dispatch(permissions, context, type) when is_binary(permissions) do
     check_permission(type, permissions, context)
   end
+  defp dispatch(permissions, context, type) when is_atom(permissions) do
+    check_permission(type, permissions, context)
+  end
   defp dispatch(permissions, context, type) when is_list(permissions) or is_map(permissions) do
     process_or(permissions, context, type)
   end
@@ -147,8 +150,9 @@ defmodule LogicalPermissions.AccessChecker do
               n when is_list(n) -> process_or(value, context, key)
               n when is_map(n) -> process_or(value, context, key)
               n when is_binary(n) -> dispatch(value, context, key)
+              n when is_atom(n) -> dispatch(value, context, key)
               n when is_boolean(n) -> dispatch(value, context, key)
-              _ -> {:error, "The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: #{inspect(%{key => value})}"}
+              _ -> {:error, "The permission value must be either a list, a map, a string, an atom or a boolean. Evaluated permissions: #{inspect(%{key => value})}"}
             end
           _ ->
             {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{inspect(type)}. Evaluated permissions: #{inspect(%{key => value})}"}

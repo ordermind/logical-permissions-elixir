@@ -13,7 +13,7 @@ defmodule AccessCheckerTest do
   test "check_access/3 wrong permission value type" do
     permissions = %{flag: 50}
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: The permission value must be either a list, a map, a string or a boolean. Evaluated permissions: %{flag: 50}"}
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{}, false) == {:error, "Error checking access: The permission value must be either a list, a map, a string, an atom or a boolean. Evaluated permissions: %{flag: 50}"}
   end
 
   test "check_access/3 nested permission types" do
@@ -247,7 +247,7 @@ defmodule AccessCheckerTest do
       testflag: true
     }
     permissions = %{
-      flag: "testflag"
+      flag: :testflag
     }
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, true}
@@ -258,7 +258,7 @@ defmodule AccessCheckerTest do
       id: 1
     }
     permissions = %{
-      flag: "testflag"
+      flag: :testflag
     }
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) == {:ok, false}
