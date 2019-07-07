@@ -9,7 +9,7 @@ defmodule LogicalPermissions.AccessChecker do
       case apply(unquote(module), :check_permission, [value, context]) do
         {:ok, access} when is_boolean(access) -> {:ok, access}
         {:error, reason} when is_binary(reason) -> {:error, reason}
-        result -> {:error, "An unexpected value was returned from #{unquote(module)}.check_permission/3. Please refer to the behaviour to see what kind of values are valid. Received value: #{inspect(result)}"}
+        result -> {:error, "An unexpected value was returned from #{unquote(module)}.check_permission/2. Please refer to the behaviour to see what kind of values are valid. Received value: #{inspect(result)}"}
       end
     end
   end)

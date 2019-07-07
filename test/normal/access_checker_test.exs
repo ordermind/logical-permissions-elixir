@@ -112,7 +112,7 @@ defmodule AccessCheckerTest do
       invalid_return_value: "test"
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:error, "Error checking if bypassing access should be forbidden: An unexpected value was returned from Elixir.LogicalPermissions.Test.InvalidReturnValue.check_permission/3. Please refer to the behaviour to see what kind of values are valid. Received value: {:ok, \"invalid_return_value\"}"}
+    assert LogicalPermissions.AccessChecker.check_access(permissions) == {:error, "Error checking if bypassing access should be forbidden: An unexpected value was returned from Elixir.LogicalPermissions.Test.InvalidReturnValue.check_permission/2. Please refer to the behaviour to see what kind of values are valid. Received value: {:ok, \"invalid_return_value\"}"}
   end
 
   test "check_access/1 no_bypass empty permissions allow" do
