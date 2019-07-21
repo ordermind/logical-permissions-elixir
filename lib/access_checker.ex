@@ -7,9 +7,17 @@ defmodule LogicalPermissions.AccessChecker do
   Enum.each(LogicalPermissions.PermissionTypeBuilder.get_permission_types(), fn {name, module} ->
     defp unquote(:check_permission)(unquote(name), value, context) do
       case apply(unquote(module), :check_permission, [value, context]) do
-        {:ok, access} when is_boolean(access) -> {:ok, access}
-        {:error, reason} when is_binary(reason) -> {:error, reason}
-        result -> {:error, "An unexpected value was returned from #{unquote(module)}.check_permission/2. Please refer to the behaviour to see what kind of values are valid. Received value: #{inspect(result)}"}
+        {:ok, access} when is_boolean(access) ->
+          {:ok, access}
+
+        {:error, reason} when is_binary(reason) ->
+          {:error, reason}
+
+        result ->
+          {:error,
+           "An unexpected value was returned from #{unquote(module)}.check_permission/2. Please refer to the behaviour to see what kind of values are valid. Received value: #{
+             inspect(result)
+           }"}
       end
     end
   end)
@@ -17,42 +25,61 @@ defmodule LogicalPermissions.AccessChecker do
   # Fallback check_permission() function that returns a helpful error message for types that haven't been registered
   @spec check_permission(atom(), binary(), map()) :: {:ok, boolean()} | {:error, binary()}
   defp check_permission(permission_type_name, _, _) do
-    {:error, "The permission type #{inspect(permission_type_name)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
+    {:error,
+     "The permission type #{inspect(permission_type_name)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
   end
 
   def unquote(:get_valid_permission_keys)() do
-    Enum.concat(unquote(LogicalPermissions.PermissionTypeValidator.get_reserved_permission_keys), Keyword.keys(unquote(LogicalPermissions.PermissionTypeBuilder.get_permission_types)))
+    Enum.concat(
+      unquote(LogicalPermissions.PermissionTypeValidator.get_reserved_permission_keys()),
+      Keyword.keys(unquote(LogicalPermissions.PermissionTypeBuilder.get_permission_types()))
+    )
   end
 
   # Generate a function for checking access bypass if a bypass access checker is available, otherwise generate a fallback function
-  case LogicalPermissions.BypassAccessCheckerBuilder.get_module do
-  nil ->
-    defp unquote(:check_bypass_access)(_) do
-      {:ok, false}
-    end
-  module ->
-    defp unquote(:check_bypass_access)(context) do
-      case apply(unquote(module), :check_bypass_access, [context]) do
-        {:ok, access} when is_boolean(access) -> {:ok, access}
-        {:error, reason} when is_binary(reason) -> {:error, reason}
-        result -> {:error, "An unexpected value was returned from #{unquote(module)}.check_bypass_access/1. Please refer to the behaviour to see what kind of values are valid. Received value: #{inspect(result)}"}
+  case LogicalPermissions.BypassAccessCheckerBuilder.get_module() do
+    nil ->
+      defp unquote(:check_bypass_access)(_) do
+        {:ok, false}
       end
-    end
+
+    module ->
+      defp unquote(:check_bypass_access)(context) do
+        case apply(unquote(module), :check_bypass_access, [context]) do
+          {:ok, access} when is_boolean(access) ->
+            {:ok, access}
+
+          {:error, reason} when is_binary(reason) ->
+            {:error, reason}
+
+          result ->
+            {:error,
+             "An unexpected value was returned from #{unquote(module)}.check_bypass_access/1. Please refer to the behaviour to see what kind of values are valid. Received value: #{
+               inspect(result)
+             }"}
+        end
+      end
   end
 
-  @spec check_access(boolean() | map() | list(), map(), boolean()) :: {:ok, boolean()} | {:error, binary()}
+  @spec check_access(boolean() | map() | list(), map(), boolean()) ::
+          {:ok, boolean()} | {:error, binary()}
   def check_access(permissions, context \\ %{}, allow_bypass \\ true)
+
   def check_access(_, context, _) when not is_map(context) do
     {:error, "The context parameter must be a map."}
   end
+
   def check_access(_, _, allow_bypass) when not is_boolean(allow_bypass) do
     {:error, "The allow_bypass parameter must be a boolean."}
   end
+
   def check_access(permissions, context, allow_bypass) when is_map(permissions) do
     check_access(Map.to_list(permissions), context, allow_bypass)
   end
+
   def check_access(permissions, context, allow_bypass) when is_list(permissions) do
     no_bypass = check_no_bypass(permissions, context, allow_bypass)
+
     bypass_access =
       case no_bypass do
         {:ok, true} -> {:ok, false}
@@ -64,10 +91,18 @@ defmodule LogicalPermissions.AccessChecker do
     permissions = permissions -- for {:no_bypass, value} <- permissions, do: {:no_bypass, value}
 
     cond do
-      elem(no_bypass, 0) == :error -> {:error, "Error checking if bypassing access should be forbidden: #{elem(no_bypass, 1)}"}
-      elem(bypass_access, 0) == :error -> {:error, "Error checking access bypass: #{elem(bypass_access, 1)}"}
-      bypass_access == {:ok, true} -> {:ok, true}
-      Enum.count(permissions) == 0 -> {:ok, true}
+      elem(no_bypass, 0) == :error ->
+        {:error, "Error checking if bypassing access should be forbidden: #{elem(no_bypass, 1)}"}
+
+      elem(bypass_access, 0) == :error ->
+        {:error, "Error checking access bypass: #{elem(bypass_access, 1)}"}
+
+      bypass_access == {:ok, true} ->
+        {:ok, true}
+
+      Enum.count(permissions) == 0 ->
+        {:ok, true}
+
       true ->
         case dispatch(permissions, context, nil) do
           {:ok, access} -> {:ok, access}
@@ -75,6 +110,7 @@ defmodule LogicalPermissions.AccessChecker do
         end
     end
   end
+
   def check_access(permissions, context, allow_bypass) when is_boolean(permissions) do
     bypass_access =
       case allow_bypass do
@@ -84,17 +120,21 @@ defmodule LogicalPermissions.AccessChecker do
 
     case bypass_access do
       {:ok, true} -> {:ok, true}
-      {:ok, false} -> dispatch(permissions, context, nil) # We don't bother to check for errors here because there is no chance of an error being returned.
+      # We don't bother to check for errors here because there is no chance of an error being returned.
+      {:ok, false} -> dispatch(permissions, context, nil)
       {:error, reason} -> {:error, "Error checking access bypass: #{reason}"}
     end
   end
+
   def check_access(_, _, _) do
     {:error, "The permissions parameter must be either a list, a map or a boolean."}
   end
 
   defp check_no_bypass(permissions, context, allow_bypass) do
     case allow_bypass do
-      false -> {:ok, true}
+      false ->
+        {:ok, true}
+
       true ->
         case Keyword.fetch(permissions, :no_bypass) do
           {:ok, no_bypass} ->
@@ -104,169 +144,269 @@ defmodule LogicalPermissions.AccessChecker do
                   {:ok, value} -> {:ok, value}
                   {:error, reason} -> {:error, reason}
                 end
+
               true ->
-                {:error, "The no_bypass value must be either a list, a map or a boolean. Current value: #{inspect(no_bypass)}"}
+                {:error,
+                 "The no_bypass value must be either a list, a map or a boolean. Current value: #{
+                   inspect(no_bypass)
+                 }"}
             end
 
-          :error -> {:ok, false}
+          :error ->
+            {:ok, false}
         end
     end
   end
 
   defp dispatch(permissions, context, type)
+
   defp dispatch(permissions, _, nil) when is_boolean(permissions) do
     {:ok, permissions}
   end
+
   defp dispatch(permissions, _, type) when is_boolean(permissions) do
-    {:error, "You cannot put a boolean permission as a descendant to a permission type. Existing type: #{inspect(type)}. Evaluated permissions: #{inspect(permissions)}"}
+    {:error,
+     "You cannot put a boolean permission as a descendant to a permission type. Existing type: #{
+       inspect(type)
+     }. Evaluated permissions: #{inspect(permissions)}"}
   end
+
   defp dispatch(permissions, _, nil) when is_binary(permissions) do
-    {:error, "A permission check is attempted but no type has been supplied. Evaluated permissions: #{inspect(permissions)}"}
+    {:error,
+     "A permission check is attempted but no type has been supplied. Evaluated permissions: #{
+       inspect(permissions)
+     }"}
   end
+
   defp dispatch(permissions, context, type) when is_binary(permissions) do
     check_permission(type, permissions, context)
   end
+
   defp dispatch(permissions, context, type) when is_atom(permissions) do
     check_permission(type, permissions, context)
   end
+
   defp dispatch(permissions, context, type) when is_list(permissions) or is_map(permissions) do
     process_or(permissions, context, type)
   end
+
   defp dispatch({key, value}, context, type) do
     case key do
-      :no_bypass -> {:error, "The :no_bypass key must be placed highest in the permission hierarchy. Evaluated permissions: #{inspect(%{key => value})}"}
-      :and -> process_and(value, context, type)
-      :nand -> process_nand(value, context, type)
-      :or -> process_or(value, context, type)
-      :nor -> process_nor(value, context, type)
-      :xor -> process_xor(value, context, type)
-      :not -> process_not(value, context, type)
-      n when is_boolean(n) -> {:error, "A boolean permission cannot have children. Evaluated permissions: #{inspect(%{key => value})}"}
-      n when is_integer(n) -> dispatch(value, context, type)
+      :no_bypass ->
+        {:error,
+         "The :no_bypass key must be placed highest in the permission hierarchy. Evaluated permissions: #{
+           inspect(%{key => value})
+         }"}
+
+      :and ->
+        process_and(value, context, type)
+
+      :nand ->
+        process_nand(value, context, type)
+
+      :or ->
+        process_or(value, context, type)
+
+      :nor ->
+        process_nor(value, context, type)
+
+      :xor ->
+        process_xor(value, context, type)
+
+      :not ->
+        process_not(value, context, type)
+
+      n when is_boolean(n) ->
+        {:error,
+         "A boolean permission cannot have children. Evaluated permissions: #{
+           inspect(%{key => value})
+         }"}
+
+      n when is_integer(n) ->
+        dispatch(value, context, type)
+
       n when is_atom(n) ->
         case type do
           nil ->
             case value do
-              n when is_list(n) -> process_or(value, context, key)
-              n when is_map(n) -> process_or(value, context, key)
-              n when is_binary(n) -> dispatch(value, context, key)
-              n when is_atom(n) -> dispatch(value, context, key)
-              n when is_boolean(n) -> dispatch(value, context, key)
-              _ -> {:error, "The permission value must be either a list, a map, a string, an atom or a boolean. Evaluated permissions: #{inspect(%{key => value})}"}
+              n when is_list(n) ->
+                process_or(value, context, key)
+
+              n when is_map(n) ->
+                process_or(value, context, key)
+
+              n when is_binary(n) ->
+                dispatch(value, context, key)
+
+              n when is_atom(n) ->
+                dispatch(value, context, key)
+
+              n when is_boolean(n) ->
+                dispatch(value, context, key)
+
+              _ ->
+                {:error,
+                 "The permission value must be either a list, a map, a string, an atom or a boolean. Evaluated permissions: #{
+                   inspect(%{key => value})
+                 }"}
             end
+
           _ ->
-            {:error, "You cannot put a permission type as a descendant to another permission type. Existing type: #{inspect(type)}. Evaluated permissions: #{inspect(%{key => value})}"}
+            {:error,
+             "You cannot put a permission type as a descendant to another permission type. Existing type: #{
+               inspect(type)
+             }. Evaluated permissions: #{inspect(%{key => value})}"}
         end
     end
   end
 
   # AND processing
   defp process_and(permissions, context, type)
+
   defp process_and(permissions, context, type) when is_map(permissions) do
     process_and(Map.to_list(permissions), context, type)
   end
-  defp process_and([h|t], context, type) do
-      case dispatch(h, context, type) do
-        {:ok, false} -> {:ok, false}
-        {:error, reason} -> {:error, reason}
-        _ -> process_and(t, context, type)
-      end
+
+  defp process_and([h | t], context, type) do
+    case dispatch(h, context, type) do
+      {:ok, false} -> {:ok, false}
+      {:error, reason} -> {:error, reason}
+      _ -> process_and(t, context, type)
+    end
   end
+
   defp process_and([], _, _) do
     {:ok, true}
   end
+
   defp process_and(permissions, _, _) do
-    {:error, "The value of an AND gate must be a list or a map. Current value: #{inspect(permissions)}"}
+    {:error,
+     "The value of an AND gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
   # NAND processing
   defp process_nand(permissions, context, type)
-  defp process_nand(permissions, context, type) when is_list(permissions) or is_map(permissions) do
+
+  defp process_nand(permissions, context, type)
+       when is_list(permissions) or is_map(permissions) do
     case process_and(permissions, context, type) do
       {:ok, value} -> {:ok, !value}
       {:error, reason} -> {:error, reason}
     end
   end
+
   defp process_nand(permissions, _, _) do
-    {:error, "The value of a NAND gate must be a list or a map. Current value: #{inspect(permissions)}"}
+    {:error,
+     "The value of a NAND gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
   # OR processing
   defp process_or(permissions, context, type)
+
   defp process_or(permissions, context, type) when is_map(permissions) do
     process_or(Map.to_list(permissions), context, type)
   end
-  defp process_or([h|t], context, type) do
-      case dispatch(h, context, type) do
-        {:ok, true} -> {:ok, true}
-        {:error, reason} -> {:error, reason}
-        _ -> process_or(t, context, type)
-      end
+
+  defp process_or([h | t], context, type) do
+    case dispatch(h, context, type) do
+      {:ok, true} -> {:ok, true}
+      {:error, reason} -> {:error, reason}
+      _ -> process_or(t, context, type)
+    end
   end
+
   defp process_or([], _, _) do
     {:ok, false}
   end
+
   defp process_or(permissions, _, _) do
-    {:error, "The value of an OR gate must be a list or a map. Current value: #{inspect(permissions)}"}
+    {:error,
+     "The value of an OR gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
   # NOR processing
   defp process_nor(permissions, context, type)
+
   defp process_nor(permissions, context, type) when is_list(permissions) or is_map(permissions) do
     case process_or(permissions, context, type) do
       {:ok, value} -> {:ok, !value}
       {:error, reason} -> {:error, reason}
     end
   end
+
   defp process_nor(permissions, _, _) do
-    {:error, "The value of a NOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
+    {:error,
+     "The value of a NOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
   # XOR processing
   defp process_xor(permissions, context, type, counter \\ %{true: 0, false: 0})
+
   defp process_xor(permissions, context, type, _) when is_map(permissions) do
     process_xor(Map.to_list(permissions), context, type)
   end
-  defp process_xor([h|t], context, type, counter) do
+
+  defp process_xor([h | t], context, type, counter) do
     case dispatch(h, context, type) do
       {:ok, true} ->
         case counter.false do
           0 -> process_xor(t, context, type, %{true: counter.true + 1, false: counter.false})
           _ -> {:ok, true}
         end
+
       {:ok, false} ->
         case counter.true do
           0 -> process_xor(t, context, type, %{true: counter.true, false: counter.false + 1})
           _ -> {:ok, true}
         end
-      {:error, reason} -> {:error, reason}
+
+      {:error, reason} ->
+        {:error, reason}
     end
   end
+
   defp process_xor([], _, _, _) do
     {:ok, false}
   end
+
   defp process_xor(permissions, _, _, _) do
-    {:error, "The value of a XOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
+    {:error,
+     "The value of a XOR gate must be a list or a map. Current value: #{inspect(permissions)}"}
   end
 
   # NOT processing
   defp process_not(permissions, context, type)
+
   defp process_not(permissions, _, _) when is_list(permissions) and length(permissions) != 1 do
-    {:error, "The value list of a NOT gate must contain exactly one element. Current value: #{inspect(permissions)}"}
+    {:error,
+     "The value list of a NOT gate must contain exactly one element. Current value: #{
+       inspect(permissions)
+     }"}
   end
+
   defp process_not(permissions, _, _) when is_map(permissions) and map_size(permissions) != 1 do
-    {:error, "The value map of a NOT gate must contain exactly one element. Current value: #{inspect(permissions)}"}
+    {:error,
+     "The value map of a NOT gate must contain exactly one element. Current value: #{
+       inspect(permissions)
+     }"}
   end
+
   defp process_not(permissions, _, _) when is_binary(permissions) and permissions == "" do
     {:error, "The value of a NOT gate cannot be an empty string."}
   end
-  defp process_not(permissions, context, type) when is_list(permissions) or is_map(permissions) or is_binary(permissions) do
+
+  defp process_not(permissions, context, type)
+       when is_list(permissions) or is_map(permissions) or is_binary(permissions) do
     case dispatch(permissions, context, type) do
       {:ok, value} -> {:ok, !value}
       {:error, reason} -> {:error, reason}
     end
   end
+
   defp process_not(permissions, _, _) do
-    {:error, "The value of a NOT gate must either be a list, a map or a string. Current value: #{inspect(permissions)}"}
+    {:error,
+     "The value of a NOT gate must either be a list, a map or a string. Current value: #{
+       inspect(permissions)
+     }"}
   end
 end

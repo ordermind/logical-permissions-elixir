@@ -6,4 +6,3 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(false) == {:ok, false}
   end
 end
-

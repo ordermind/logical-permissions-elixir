@@ -7,4 +7,3 @@ defmodule LogicalPermissions.Test.BypassAccessCheckerInvalidReturnValue do
     {:ok, "invalid_return_value"}
   end
 end
-

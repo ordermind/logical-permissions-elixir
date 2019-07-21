@@ -6,10 +6,10 @@ defmodule LogicalPermissions.MixProject do
       app: :logical_permissions,
       version: "0.1.1",
       elixir: "~> 1.6",
-      elixirc_paths: elixirc_paths(Mix.env),
+      elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      test_paths: test_paths(Mix.env)
+      test_paths: test_paths(Mix.env())
     ]
   end
 
@@ -30,8 +30,13 @@ defmodule LogicalPermissions.MixProject do
   end
 
   defp elixirc_paths(:test_normal), do: ["lib", "test/normal", "test/shared"]
-  defp elixirc_paths(:test_invalid_bypass_access_checker), do: ["lib", "test/invalid_bypass_access_checker", "test/shared"]
-  defp elixirc_paths(:test_no_bypass_access_checker), do: ["lib", "test/no_bypass_access_checker", "test/shared"]
+
+  defp elixirc_paths(:test_invalid_bypass_access_checker),
+    do: ["lib", "test/invalid_bypass_access_checker", "test/shared"]
+
+  defp elixirc_paths(:test_no_bypass_access_checker),
+    do: ["lib", "test/no_bypass_access_checker", "test/shared"]
+
   defp elixirc_paths(:test_compile_warnings), do: ["lib", "test/compile_warnings", "test/shared"]
   defp elixirc_paths(:dialyzer), do: ["lib", "test/shared/valid"]
   defp elixirc_paths(_), do: ["lib"]

@@ -7,5 +7,3 @@ defmodule LogicalPermissions.Test.InvalidReturnValue do
     {:ok, "invalid_return_value"}
   end
 end
-
-

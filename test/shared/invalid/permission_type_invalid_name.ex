@@ -7,6 +7,3 @@ defmodule LogicalPermissions.Test.InvalidName do
     {:ok, true}
   end
 end
-
-
-

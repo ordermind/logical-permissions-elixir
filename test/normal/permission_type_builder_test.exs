@@ -6,11 +6,11 @@ defmodule PermissionTypeBuilderTest do
     flag: LogicalPermissions.Test.Flag,
     role: LogicalPermissions.Test.Role,
     invalid_return_value: LogicalPermissions.Test.InvalidReturnValue,
-    misc: LogicalPermissions.Test.Misc,
+    misc: LogicalPermissions.Test.Misc
   ]
 
   test "get_permission_types/0" do
-    assert LogicalPermissions.PermissionTypeBuilder.get_permission_types == @permission_types
+    assert LogicalPermissions.PermissionTypeBuilder.get_permission_types() == @permission_types
   end
 
   test "type_exists?/1" do
@@ -27,6 +27,8 @@ defmodule PermissionTypeBuilderTest do
       assert LogicalPermissions.PermissionTypeBuilder.get_module(name) == {:ok, module}
     end)
 
-    assert LogicalPermissions.PermissionTypeBuilder.get_module(:unregistered) == {:error, "The permission type :unregistered has not been registered. Please refer to the documentation regarding how to register a permission type."}
+    assert LogicalPermissions.PermissionTypeBuilder.get_module(:unregistered) ==
+             {:error,
+              "The permission type :unregistered has not been registered. Please refer to the documentation regarding how to register a permission type."}
   end
 end

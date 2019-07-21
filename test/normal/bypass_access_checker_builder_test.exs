@@ -3,6 +3,7 @@ defmodule BypassAccessCheckerBuilderTest do
   doctest LogicalPermissions.BypassAccessCheckerBuilder
 
   test "get_module/0" do
-    assert LogicalPermissions.BypassAccessCheckerBuilder.get_module == LogicalPermissions.Test.BypassAccessChecker
+    assert LogicalPermissions.BypassAccessCheckerBuilder.get_module() ==
+             LogicalPermissions.Test.BypassAccessChecker
   end
 end
