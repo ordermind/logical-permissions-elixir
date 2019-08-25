@@ -23,6 +23,11 @@ defmodule AccessCheckerTest do
              {:error, "The permissions parameter must be either a list, a map or a boolean."}
   end
 
+  test "check_access/1 nil allow" do
+    assert LogicalPermissions.AccessChecker.check_access(nil, %{}, false) ==
+             {:ok, true}
+  end
+
   test "check_access/3 wrong permission value type" do
     permissions = %{flag: 50}
 
