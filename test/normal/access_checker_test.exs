@@ -1489,7 +1489,7 @@ defmodule AccessCheckerTest do
   test "check_access/3 NOT wrong value type" do
     permissions = [
       role: [
-        not: true
+        not: 1
       ]
     ]
 
@@ -1500,7 +1500,7 @@ defmodule AccessCheckerTest do
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
              {:error,
-              "Error checking access: The value of a NOT gate must either be a list, a map or a string. Current value: true"}
+              "Error checking access: The value of a NOT gate must either be a list, a map, a string or an atom. Current value: 1"}
   end
 
   test "check_access/3 NOT map too few elements" do
@@ -1575,6 +1575,37 @@ defmodule AccessCheckerTest do
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
              {:error,
               "Error checking access: The value list of a NOT gate must contain exactly one element. Current value: [\"admin\", \"writer\"]"}
+  end
+
+  test "check_access/3 NOT atom" do
+    permissions = [
+      role: [
+        not: :admin
+      ]
+    ]
+
+    user = %{
+      id: 1,
+      roles: [:admin, :editor]
+    }
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+             {:ok, false}
+
+    user = Map.put(user, :roles, [])
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+             {:ok, true}
+
+    user = Map.drop(user, [:roles])
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+             {:ok, true}
+
+    user = Map.put(user, :roles, [:editor])
+
+    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+             {:ok, true}
   end
 
   test "check_access/3 NOT string empty" do

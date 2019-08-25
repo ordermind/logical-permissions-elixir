@@ -23,7 +23,8 @@ defmodule LogicalPermissions.AccessChecker do
   end)
 
   # Fallback check_permission() function that returns a helpful error message for types that haven't been registered
-  @spec check_permission(atom(), binary() | atom(), map()) :: {:ok, boolean()} | {:error, binary()}
+  @spec check_permission(atom(), binary() | atom(), map()) ::
+          {:ok, boolean()} | {:error, binary()}
   defp check_permission(permission_type_name, _, _) do
     {:error,
      "The permission type #{inspect(permission_type_name)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
@@ -396,7 +397,7 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   defp process_not(permissions, context, type)
-       when is_list(permissions) or is_map(permissions) or is_binary(permissions) do
+       when is_list(permissions) or is_map(permissions) or is_binary(permissions) or is_atom(permissions) do
     case dispatch(permissions, context, type) do
       {:ok, value} -> {:ok, !value}
       {:error, reason} -> {:error, reason}
@@ -405,7 +406,7 @@ defmodule LogicalPermissions.AccessChecker do
 
   defp process_not(permissions, _, _) do
     {:error,
-     "The value of a NOT gate must either be a list, a map or a string. Current value: #{
+     "The value of a NOT gate must either be a list, a map, a string or an atom. Current value: #{
        inspect(permissions)
      }"}
   end
