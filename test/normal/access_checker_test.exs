@@ -2,22 +2,6 @@ defmodule AccessCheckerTest do
   use ExUnit.Case
   doctest LogicalPermissions.AccessChecker
 
-  test "get_valid_permission_keys/0" do
-    assert LogicalPermissions.AccessChecker.get_valid_permission_keys() == [
-             :no_bypass,
-             :and,
-             :nand,
-             :or,
-             :nor,
-             :xor,
-             :not,
-             :flag,
-             :role,
-             :invalid_return_value,
-             :misc
-           ]
-  end
-
   test "check_access/1 wrong permissions param type" do
     assert LogicalPermissions.AccessChecker.check_access(0) ==
              {:error, "The permissions parameter must be either a list, a map or a boolean."}

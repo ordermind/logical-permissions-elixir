@@ -1,67 +1,14 @@
 defmodule LogicalPermissions.AccessChecker do
-  require LogicalPermissions.PermissionTypeBuilder
-  require LogicalPermissions.BypassAccessCheckerBuilder
-  require LogicalPermissions.PermissionTypeValidator
+  @moduledoc """
+  Main module used for checking access for a permission tree.
+  """
 
-  # Generate a function for checking permission for each permission type
-  Enum.each(LogicalPermissions.PermissionTypeBuilder.get_permission_types(), fn {name, module} ->
-    defp unquote(:check_permission)(unquote(name), value, context) do
-      case apply(unquote(module), :check_permission, [value, context]) do
-        {:ok, access} when is_boolean(access) ->
-          {:ok, access}
+  alias LogicalPermissions.BypassAccessCheckDelegator
+  alias LogicalPermissions.PermissionCheckDelegator
 
-        {:error, reason} when is_binary(reason) ->
-          {:error, reason}
-
-        result ->
-          {:error,
-           "An unexpected value was returned from #{unquote(module)}.check_permission/2. Please refer to the behaviour to see what kind of values are valid. Received value: #{
-             inspect(result)
-           }"}
-      end
-    end
-  end)
-
-  # Fallback check_permission() function that returns a helpful error message for types that haven't been registered
-  @spec check_permission(atom(), binary() | atom(), map()) ::
-          {:ok, boolean()} | {:error, binary()}
-  defp check_permission(permission_type_name, _, _) do
-    {:error,
-     "The permission type #{inspect(permission_type_name)} has not been registered. Please refer to the documentation regarding how to register a permission type."}
-  end
-
-  def unquote(:get_valid_permission_keys)() do
-    Enum.concat(
-      unquote(LogicalPermissions.PermissionTypeValidator.get_reserved_permission_keys()),
-      Keyword.keys(unquote(LogicalPermissions.PermissionTypeBuilder.get_permission_types()))
-    )
-  end
-
-  # Generate a function for checking access bypass if a bypass access checker is available, otherwise generate a fallback function
-  case LogicalPermissions.BypassAccessCheckerBuilder.get_module() do
-    nil ->
-      defp unquote(:check_bypass_access)(_) do
-        {:ok, false}
-      end
-
-    module ->
-      defp unquote(:check_bypass_access)(context) do
-        case apply(unquote(module), :check_bypass_access, [context]) do
-          {:ok, access} when is_boolean(access) ->
-            {:ok, access}
-
-          {:error, reason} when is_binary(reason) ->
-            {:error, reason}
-
-          result ->
-            {:error,
-             "An unexpected value was returned from #{unquote(module)}.check_bypass_access/1. Please refer to the behaviour to see what kind of values are valid. Received value: #{
-               inspect(result)
-             }"}
-        end
-      end
-  end
-
+  @doc """
+  Checks access for a permission tree.
+  """
   @spec check_access(nil | boolean() | map() | list(), map(), boolean()) ::
           {:ok, boolean()} | {:error, binary()}
   def check_access(permissions, context \\ %{}, allow_bypass \\ true)
@@ -88,7 +35,7 @@ defmodule LogicalPermissions.AccessChecker do
     bypass_access =
       case no_bypass do
         {:ok, true} -> {:ok, false}
-        {:ok, false} -> check_bypass_access(context)
+        {:ok, false} -> BypassAccessCheckDelegator.check_bypass_access(context)
         {:error, _} -> nil
       end
 
@@ -119,7 +66,7 @@ defmodule LogicalPermissions.AccessChecker do
   def check_access(permissions, context, allow_bypass) when is_boolean(permissions) do
     bypass_access =
       case allow_bypass do
-        true -> check_bypass_access(context)
+        true -> BypassAccessCheckDelegator.check_bypass_access(context)
         false -> {:ok, false}
       end
 
@@ -184,11 +131,11 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   defp dispatch(permissions, context, type) when is_binary(permissions) do
-    check_permission(type, permissions, context)
+    PermissionCheckDelegator.check_permission(type, permissions, context)
   end
 
   defp dispatch(permissions, context, type) when is_atom(permissions) do
-    check_permission(type, permissions, context)
+    PermissionCheckDelegator.check_permission(type, permissions, context)
   end
 
   defp dispatch(permissions, context, type) when is_list(permissions) or is_map(permissions) do

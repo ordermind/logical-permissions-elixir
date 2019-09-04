@@ -9,6 +9,22 @@ defmodule PermissionTypeBuilderTest do
     misc: LogicalPermissions.Test.Misc
   ]
 
+  test "get_valid_permission_keys/0" do
+    assert LogicalPermissions.PermissionTypeBuilder.get_valid_permission_keys() == [
+             :no_bypass,
+             :and,
+             :nand,
+             :or,
+             :nor,
+             :xor,
+             :not,
+             :flag,
+             :role,
+             :invalid_return_value,
+             :misc
+           ]
+  end
+
   test "get_permission_types/0" do
     assert LogicalPermissions.PermissionTypeBuilder.get_permission_types() == @permission_types
   end
