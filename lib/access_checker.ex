@@ -110,6 +110,8 @@ defmodule LogicalPermissions.AccessChecker do
     end
   end
 
+  @spec dispatch(list() | map() | binary() | atom() | boolean(), map(), atom() | nil) ::
+          {:ok, boolean()} | {:error, binary()}
   defp dispatch(permissions, context, type)
 
   defp dispatch(permissions, _, nil) when is_boolean(permissions) do
