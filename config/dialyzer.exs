@@ -1,4 +1,4 @@
-use Mix.Config
+import Config
 
 config :logical_permissions, :bypass_access_checker, LogicalPermissions.Test.BypassAccessChecker
 config :logical_permissions, :permission_types, flag: LogicalPermissions.Test.Flag

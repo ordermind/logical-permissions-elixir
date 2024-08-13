@@ -5,7 +5,7 @@ defmodule LogicalPermissions.PermissionTypeBuilder do
 
   alias LogicalPermissions.PermissionTypeValidator
 
-  permission_types = Application.get_env(:logical_permissions, :permission_types, [])
+  permission_types = Application.compile_env(:logical_permissions, :permission_types, [])
 
   # Generate functions for each valid permission type
   Enum.each(permission_types, fn {name, module} ->
