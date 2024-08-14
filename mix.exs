@@ -28,7 +28,7 @@ defmodule LogicalPermissions.MixProject do
     ]
   end
 
-  defp elixirc_paths(:test_normal), do: ["lib", "test/normal", "test/shared"]
+  defp elixirc_paths(:test), do: ["lib", "test/normal", "test/shared"]
 
   defp elixirc_paths(:test_invalid_bypass_access_checker),
     do: ["lib", "test/invalid_bypass_access_checker", "test/shared"]
@@ -40,7 +40,7 @@ defmodule LogicalPermissions.MixProject do
   defp elixirc_paths(:dialyzer), do: ["lib", "test/shared/valid"]
   defp elixirc_paths(_), do: ["lib"]
 
-  defp test_paths(:test_normal), do: ["test/normal"]
+  defp test_paths(:test), do: ["test/normal"]
   defp test_paths(:test_invalid_bypass_access_checker), do: ["test/invalid_bypass_access_checker"]
   defp test_paths(:test_no_bypass_access_checker), do: ["test/no_bypass_access_checker"]
   defp test_paths(:test_compile_warnings), do: ["test/compile_warnings"]
