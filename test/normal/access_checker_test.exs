@@ -486,8 +486,13 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.And.exec/1 requires the input list to contain at least one element."
+        }
+    )
   end
 
   test "check_access/3 AND list empty value" do
@@ -502,8 +507,13 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.And.exec/1 requires the input list to contain at least one element."
+        }
+    )
   end
 
   test "check_access/3 AND map" do
@@ -692,8 +702,13 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, false}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.Nand.exec/1 requires the input list to contain at least one element."
+        }
+    )
   end
 
   test "check_access/3 NAND list empty value" do
@@ -708,8 +723,13 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, false}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.Nand.exec/1 requires the input list to contain at least one element."
+        }
+    )
   end
 
   test "check_access/3 NAND map" do
@@ -899,8 +919,13 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, false}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.Or.exec/1 requires the input list to contain at least one element."
+        }
+    )
   end
 
   test "check_access/3 OR list empty value" do
@@ -915,8 +940,13 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, false}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.Or.exec/1 requires the input list to contain at least one element."
+        }
+    )
   end
 
   test "check_access/3 OR map" do
@@ -1103,8 +1133,13 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.Nor.exec/1 requires the input list to contain at least one element."
+        }
+    )
   end
 
   test "check_access/3 NOR list empty value" do
@@ -1119,8 +1154,13 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.Nor.exec/1 requires the input list to contain at least one element."
+        }
+    )
   end
 
   test "check_access/3 NOR map" do
@@ -1307,8 +1347,38 @@ defmodule AccessCheckerTest do
       roles: ["admin"]
     }
 
-    assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, false}
+    assert(
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
+        {
+          :error,
+          "Error checking access: LogicGates.Xor.exec/1 requires the input list to contain at least two elements. Current parameter: []"
+        }
+    )
+  end
+
+  test "check_access/3 XOR one value" do
+    permissions = [
+      role: [
+        xor: ["admin"]
+      ]
+    ]
+
+    user = %{
+      id: 1,
+      roles: ["admin"]
+    }
+
+    {status, result} =
+      LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false)
+
+    assert(status == :error)
+
+    assert(
+      String.match?(
+        result,
+        ~r/^Error checking access: LogicGates.Xor.exec\/1 requires the input list to contain at least two elements. Current parameter: /
+      )
+    )
   end
 
   test "check_access/3 XOR map" do

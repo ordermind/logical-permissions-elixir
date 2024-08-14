@@ -213,13 +213,9 @@ defmodule LogicalPermissions.AccessChecker do
     process_and(Map.to_list(permissions), context, type)
   end
 
-  defp process_and([head | tail], context, type) do
-    Enum.map([head | tail], fn permission -> fn -> dispatch(permission, context, type) end end)
+  defp process_and(permissions, context, type) when is_list(permissions) do
+    Enum.map(permissions, fn permission -> fn -> dispatch(permission, context, type) end end)
     |> And.exec()
-  end
-
-  defp process_and([], _, _) do
-    {:ok, true}
   end
 
   defp process_and(permissions, _, _) do
@@ -234,13 +230,9 @@ defmodule LogicalPermissions.AccessChecker do
     process_nand(Map.to_list(permissions), context, type)
   end
 
-  defp process_nand([head | tail], context, type) do
-    Enum.map([head | tail], fn permission -> fn -> dispatch(permission, context, type) end end)
+  defp process_nand(permissions, context, type) when is_list(permissions) do
+    Enum.map(permissions, fn permission -> fn -> dispatch(permission, context, type) end end)
     |> Nand.exec()
-  end
-
-  defp process_nand([], _, _) do
-    {:ok, false}
   end
 
   defp process_nand(permissions, _, _) do
@@ -255,13 +247,9 @@ defmodule LogicalPermissions.AccessChecker do
     process_or(Map.to_list(permissions), context, type)
   end
 
-  defp process_or([head | tail], context, type) do
-    Enum.map([head | tail], fn permission -> fn -> dispatch(permission, context, type) end end)
+  defp process_or(permissions, context, type) when is_list(permissions) do
+    Enum.map(permissions, fn permission -> fn -> dispatch(permission, context, type) end end)
     |> Or.exec()
-  end
-
-  defp process_or([], _, _) do
-    {:ok, false}
   end
 
   defp process_or(permissions, _, _) do
@@ -276,13 +264,9 @@ defmodule LogicalPermissions.AccessChecker do
     process_nor(Map.to_list(permissions), context, type)
   end
 
-  defp process_nor([head | tail], context, type) do
-    Enum.map([head | tail], fn permission -> fn -> dispatch(permission, context, type) end end)
+  defp process_nor(permissions, context, type) when is_list(permissions) do
+    Enum.map(permissions, fn permission -> fn -> dispatch(permission, context, type) end end)
     |> Nor.exec()
-  end
-
-  defp process_nor([], _, _) do
-    {:ok, true}
   end
 
   defp process_nor(permissions, _, _) do
@@ -297,13 +281,9 @@ defmodule LogicalPermissions.AccessChecker do
     process_xor(Map.to_list(permissions), context, type)
   end
 
-  defp process_xor([head | tail], context, type) do
-    Enum.map([head | tail], fn permission -> fn -> dispatch(permission, context, type) end end)
+  defp process_xor(permissions, context, type) when is_list(permissions) do
+    Enum.map(permissions, fn permission -> fn -> dispatch(permission, context, type) end end)
     |> Xor.exec()
-  end
-
-  defp process_xor([], _, _) do
-    {:ok, false}
   end
 
   defp process_xor(permissions, _, _) do
