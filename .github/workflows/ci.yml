@@ -110,6 +110,18 @@ jobs:
     - name: Run dialyzer
       run: mix dialyzer --format github
 
-    # Step: Execute the tests.
+    # Step: Execute compile warnings tests.
     - name: Run tests
-      run: mix test
+      run: MIX_ENV=test_compile_warnings mix test
+
+    # Step: Execute invalid bypass access checker tests.
+    - name: Run tests
+      run: MIX_ENV=test_invalid_bypass_access_checker mix test
+
+    # Step: Execute no bypass access checker tests.
+    - name: Run tests
+      run: MIX_ENV=test_no_bypass_access_checker mix test
+
+    # Step: Execute regular tests.
+    - name: Run tests
+      run: MIX_ENV=test mix test
