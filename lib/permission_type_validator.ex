@@ -11,9 +11,7 @@ defmodule LogicalPermissions.PermissionTypeValidator do
     case name in unquote(reserved_permission_keys) do
       true ->
         {:error,
-         "The name of a permission type cannot be one of the following: #{
-           inspect(unquote(reserved_permission_keys))
-         }"}
+         "The name of a permission type cannot be one of the following: #{inspect(unquote(reserved_permission_keys))}"}
 
       _ ->
         {:ok, true}

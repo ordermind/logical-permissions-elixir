@@ -28,9 +28,7 @@ defmodule LogicalPermissions.BypassAccessCheckDelegator do
 
           result ->
             {:error,
-             "An unexpected value was returned from #{unquote(module)}.check_bypass_access/1. Please refer to the behaviour to see what kind of values are valid. Received value: #{
-               inspect(result)
-             }"}
+             "An unexpected value was returned from #{unquote(module)}.check_bypass_access/1. Please refer to the behaviour to see what kind of values are valid. Received value: #{inspect(result)}"}
         end
       end
   end

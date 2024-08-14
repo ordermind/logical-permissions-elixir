@@ -1379,7 +1379,7 @@ defmodule AccessCheckerTest do
     user = Map.put(user, :test, true)
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+             {:ok, false}
 
     # 1 0 0
     user = %{
@@ -1394,20 +1394,20 @@ defmodule AccessCheckerTest do
     user = Map.put(user, :test, true)
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+             {:ok, false}
 
     # 1 1 0
     user = Map.put(user, :test, false)
     user = Map.put(user, :roles, ["admin"])
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+             {:ok, false}
 
     # 1 1 1
     user = Map.put(user, :test, true)
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, false}
+             {:ok, true}
   end
 
   test "check_access/3 XOR list multiple values" do
@@ -1447,7 +1447,7 @@ defmodule AccessCheckerTest do
     user = Map.put(user, :roles, ["writer", "editor"])
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+             {:ok, false}
 
     # 1 0 0
     user = Map.put(user, :roles, ["admin"])
@@ -1459,19 +1459,19 @@ defmodule AccessCheckerTest do
     user = Map.put(user, :roles, ["admin", "editor"])
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+             {:ok, false}
 
     # 1 1 0
     user = Map.put(user, :roles, ["admin", "writer"])
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, true}
+             {:ok, false}
 
     # 1 1 1
     user = Map.put(user, :roles, ["admin", "writer", "editor"])
 
     assert LogicalPermissions.AccessChecker.check_access(permissions, %{user: user}, false) ==
-             {:ok, false}
+             {:ok, true}
   end
 
   # ----NOT----#

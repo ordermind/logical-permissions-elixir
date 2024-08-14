@@ -23,8 +23,8 @@ defmodule LogicalPermissions.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:logic_gates, "~> 0.6.0"},
-      {:dialyxir, "~> 1.3", only: [:dialyzer], runtime: false},
+      {:logic_gates, "~> 0.6"},
+      {:dialyxir, "~> 1.3", only: [:test], runtime: false}
     ]
   end
 
