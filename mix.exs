@@ -8,8 +8,20 @@ defmodule LogicalPermissions.MixProject do
       elixir: "~> 1.6",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
+      test_paths: test_paths(Mix.env()),
+      description: description(),
+      package: package(),
       deps: deps(),
-      test_paths: test_paths(Mix.env())
+      dialyzer: dialyzer(),
+      source_url: "https://github.com/ordermind/logical-permissions-elixir"
+    ]
+  end
+
+  # Run "mix help deps" to learn about dependencies.
+  defp deps do
+    [
+      {:logic_gates, "~> 0.6"},
+      {:dialyxir, "~> 1.3", only: [:test], runtime: false}
     ]
   end
 
@@ -20,11 +32,24 @@ defmodule LogicalPermissions.MixProject do
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
-  defp deps do
+  defp package() do
     [
-      {:logic_gates, "~> 0.6"},
-      {:dialyxir, "~> 1.3", only: [:test], runtime: false}
+      name: "logical_permissions",
+      # These are the default files included in the package
+      files: ~w(lib mix.exs README* LICENSE*),
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/ordermind/logic-gates-elixir"}
+    ]
+  end
+
+  defp description() do
+    "Provides support for list/map-based permissions with logic gates such as AND and OR."
+  end
+
+  defp dialyzer() do
+    [
+      # Put the project-level PLT in the priv/ directory (instead of the default _build/ location)
+      plt_file: {:no_warn, "priv/plts/project.plt"}
     ]
   end
 
