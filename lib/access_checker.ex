@@ -3,6 +3,9 @@ defmodule LogicalPermissions.AccessChecker do
   Main module used for checking access for a permission tree.
   """
 
+  alias LogicGates.Or
+  alias LogicGates.Nand
+  alias LogicGates.And
   alias LogicalPermissions.BypassAccessCheckDelegator
   alias LogicalPermissions.PermissionCheckDelegator
 
@@ -222,11 +225,8 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   defp process_and([h | t], context, type) do
-    case dispatch(h, context, type) do
-      {:ok, false} -> {:ok, false}
-      {:error, reason} -> {:error, reason}
-      _ -> process_and(t, context, type)
-    end
+    Enum.map([h | t], fn permission -> (fn -> dispatch(permission, context, type) end) end)
+    |> And.exec
   end
 
   defp process_and([], _, _) do
@@ -241,12 +241,17 @@ defmodule LogicalPermissions.AccessChecker do
   # NAND processing
   defp process_nand(permissions, context, type)
 
-  defp process_nand(permissions, context, type)
-       when is_list(permissions) or is_map(permissions) do
-    case process_and(permissions, context, type) do
-      {:ok, value} -> {:ok, !value}
-      {:error, reason} -> {:error, reason}
-    end
+  defp process_nand(permissions, context, type) when is_map(permissions) do
+    process_nand(Map.to_list(permissions), context, type)
+  end
+
+  defp process_nand([h | t], context, type) do
+    Enum.map([h | t], fn permission -> (fn -> dispatch(permission, context, type) end) end)
+    |> Nand.exec
+  end
+
+  defp process_nand([], _, _) do
+    {:ok, false}
   end
 
   defp process_nand(permissions, _, _) do
@@ -262,11 +267,8 @@ defmodule LogicalPermissions.AccessChecker do
   end
 
   defp process_or([h | t], context, type) do
-    case dispatch(h, context, type) do
-      {:ok, true} -> {:ok, true}
-      {:error, reason} -> {:error, reason}
-      _ -> process_or(t, context, type)
-    end
+    Enum.map([h | t], fn permission -> (fn -> dispatch(permission, context, type) end) end)
+    |> Or.exec
   end
 
   defp process_or([], _, _) do
